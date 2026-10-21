@@ -1,0 +1,20 @@
+YT6801 Ethernet Driver for macOS
+Copyright (c) 2026 MiniYv
+
+This product includes software that is a derivative work of the
+Motorcomm YT6801 Linux driver (the "fuxi-gmac" driver stack, v1.0.30):
+
+    Copyright (c) 2021 Motor-comm Corporation
+
+The register definitions, descriptor layout and PHY timing constants used
+here are hardware facts of the YT6801 chip, learned from that driver.
+
+The upstream driver is licensed under the GNU General Public License
+version 2 or later (GPL-2.0-or-later), and is distributed in the hope
+that it will be useful, but WITHOUT ANY WARRANTY; without even the
+implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+See the GNU General Public License for more details.
+
+Because this project is a derivative work of GPL-2.0-or-later code, it is
+distributed under the same license. See the LICENSE file for the full
+license text.

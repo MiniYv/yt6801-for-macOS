@@ -1,5 +1,10 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
 /*
  * yt6801_reg.h — Motorcomm YT6801 Gigabit Ethernet controller registers
+ *
+ * Values reflect the real chip; derived from the vendor Linux driver
+ * ("fuxi-gmac" v1.0.30, Copyright (c) 2021 Motor-comm Corporation,
+ * GPL-2.0-or-later). See the NOTICE file at the repository root.
  *
  * All addresses/bitfields are real chip values, no placeholders. Only
  * what macOS/DriverKit needs is kept: register addresses, bitfields,
