@@ -1425,13 +1425,15 @@ licenseText(void)
         self.secondaryButton.title = S(K_BTN_UNINSTALL);
         self.secondaryButton.hidden = NO;
     } else if (onDisk) {
+        /* Driver present on disk but not activated. Reinstall re-submits
+         * activation; uninstall works regardless of version match. */
         self.statusLabel.stringValue = S(K_ST_ONDISK);
         self.versionLabel.stringValue =
             [NSString stringWithFormat:S(K_FMT_ONDISK), builtinVersion()];
         self.dot.layer.backgroundColor = [NSColor systemOrangeColor].CGColor;
         self.hintLabel.stringValue = S(K_HINT_ONDISK);
-        self.primaryButton.title = S(K_BTN_INSTALL);
-        self.secondaryButton.title = S(K_BTN_CANCEL);
+        self.primaryButton.title = S(K_BTN_REINSTALL);
+        self.secondaryButton.title = S(K_BTN_UNINSTALL);
         self.secondaryButton.hidden = NO;
     } else {
         self.statusLabel.stringValue = S(K_ST_NOTINSTALLED);
