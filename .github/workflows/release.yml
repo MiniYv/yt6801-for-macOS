@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode with DriverKit SDK
+        run: |
+          ls /Applications | grep -i xcode
+          sudo xcode-select -s /Applications/Xcode*.app/Contents/Developer
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i driverkit
+
+      - name: Resolve toolchain paths
+        run: |
+          SDK="$(xcrun -sdk driverkit26.0 --show-sdk-path)"
+          IIG="$(xcrun -sdk driverkit26.0 -f iig)"
+          echo "DKX=${SDK}"                    >> "$GITHUB_ENV"
+          echo "IIGBIN=${IIG}"                 >> "$GITHUB_ENV"
+          echo "CLANG=$(xcrun -f clang++)"     >> "$GITHUB_ENV"
+          echo "STRIP=$(xcrun -f strip)"       >> "$GITHUB_ENV"
+          XC="$(xcode-select -p)"
+          echo "CLT_LIB=${XC}/Toolchains/XcodeDefault.xctoolchain/usr/lib" >> "$GITHUB_ENV"
+
+      - name: Build dext
+        run: ./scripts/build.sh
+
+      - name: Build installer DMG/ZIP
+        run: ./installer/scripts/build.sh
+
+      - name: Verify artifacts
+        run: |
+          plutil -extract CFBundleIdentifier raw dist/yt6801.dext/Contents/Info.plist
+          plutil -extract CFBundleVersion    raw dist/yt6801.dext/Contents/Info.plist
+          ls -l installer/dist/*.dmg installer/dist/*.zip
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: yt6801-installer
+          path: |
+            installer/dist/*.dmg
+            installer/dist/*.zip
+          if-no-files-found: error
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "YT6801 Ethernet Driver ${GITHUB_REF_NAME}" \
+            --generate-notes \
+            installer/dist/*.dmg installer/dist/*.zip

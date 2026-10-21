@@ -16,12 +16,14 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 # ---------- Paths ----------
-DKX="$ROOT/research/headers/dk_real/DriverKit.sdk"
-IIGBIN="$ROOT/research/headers/tools/iig"
-CLANG="/Library/Developer/CommandLineTools/usr/bin/clang++"
-STRIP="/Library/Developer/CommandLineTools/usr/bin/strip"
+# All toolchain paths can be overridden via environment (CI runners point them
+# at Xcode's own DriverKit SDK instead of the vendored copy).
+DKX="${DKX:-$ROOT/research/headers/dk_real/DriverKit.sdk}"
+IIGBIN="${IIGBIN:-$ROOT/research/headers/tools/iig}"
+CLANG="${CLANG:-/Library/Developer/CommandLineTools/usr/bin/clang++}"
+STRIP="${STRIP:-/Library/Developer/CommandLineTools/usr/bin/strip}"
 PLUTIL="/usr/bin/plutil"
-CLT_LIB="/Library/Developer/CommandLineTools/usr/lib"
+CLT_LIB="${CLT_LIB:-/Library/Developer/CommandLineTools/usr/lib}"
 
 BUILD="$ROOT/build"
 GEN="$BUILD/gen"
