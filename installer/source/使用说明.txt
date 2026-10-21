@@ -66,7 +66,8 @@ Q: 会不会和别的网卡驱动冲突？
 许可
 ----
 
-完全免费，遵循 MIT 许可证发布。
+完全免费，以 GNU GPL v2.0（或更新版本）开源许可证发布。
+本驱动移植自 Motorcomm 官方 Linux 驱动，依上游要求继续以 GPL-2.0+ 开源。
 源码：https://github.com/  （项目页以发布者提供为准）
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+本软件按"原样"提供，不附带任何担保。

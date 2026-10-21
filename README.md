@@ -8,7 +8,7 @@ This driver is a port of the vendor's Linux driver ([motorcomm yt6801 / fuxi-gma
 
 ## Features
 
-- User-space DriverKit driver — no kernel extensions, works on macOS 26+
+- User-space DriverKit driver — no kernel extensions, works on macOS 15.2+
 - DMA descriptor rings backed by self-managed `IODMACommand` buffers
 - Link detection via periodic PHY polling (200 ms): cable pull/unplug is reported to macOS immediately, and the system can fall back to Wi-Fi
 - MAC speed auto-sync after renegotiation (10/100/1000 Mbit)
@@ -19,8 +19,12 @@ This driver is a port of the vendor's Linux driver ([motorcomm yt6801 / fuxi-gma
 
 ## Requirements
 
-- macOS 26 or later, Intel (x86_64)
+- macOS 15.2 or later (built and tested on macOS 26), Intel (x86_64)
 - Motorcomm YT6801-based Ethernet controller (`1f0a:6801`)
+
+## Tested hardware
+
+- **Mechrevo Jiaolong 16 Pro (Youwan Qingchun edition)** — Ryzen 9 8940HX + RTX 5060, Hackintosh
 
 ## Install
 

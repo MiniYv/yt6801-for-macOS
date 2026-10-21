@@ -32,6 +32,6 @@
 	<key>NSSystemExtensionUsageDescription</key>
 	<string>YT6801 网卡驱动需要安装系统扩展才能工作。</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>完全免费 · MIT License · Copyright (c) 2026 YT6801 Driver Contributors</string>
+	<string>完全免费 · GPL-2.0 开源许可 · Copyright (c) 2026 MiniYv</string>
 </dict>
 </plist>

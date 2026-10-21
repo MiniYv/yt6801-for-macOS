@@ -744,67 +744,249 @@ cliUninstall(void)
     return 0;
 }
 
+
+/* ------------------------------------------------------------------ */
+#pragma mark - UI language
+
+/* Selected on the first screen: 0 = English, 1 = Simplified, 2 = Traditional */
+static NSInteger gLang = 1;
+
+enum {
+    K_WINDOW_TITLE,
+    K_TITLE,
+    K_SUBTITLE,
+    K_CHECKING,
+    K_ST_INSTALLED,
+    K_FMT_VERSION,
+    K_HINT_UP_TO_DATE,
+    K_HINT_DIFF_VERSION,
+    K_BTN_REINSTALL,
+    K_BTN_UNINSTALL,
+    K_ST_TERMINATING,
+    K_ST_INACTIVE,
+    K_HINT_INACTIVE,
+    K_ST_ONDISK,
+    K_FMT_ONDISK,
+    K_HINT_ONDISK,
+    K_ST_NOTINSTALLED,
+    K_FMT_BUNDLED,
+    K_HINT_FRESH,
+    K_BTN_INSTALL,
+    K_BTN_CANCEL,
+    K_BTN_DETAILS,
+    K_BTN_HIDE_DETAILS,
+    K_LOG_DETAIL_OPEN,
+    K_INSTALLING,
+    K_UNINSTALLING,
+    K_DONE_INSTALL,
+    K_DONE_UNINSTALL,
+    K_BTN_DONE,
+    K_HINT_INSTALLED_OK,
+    K_HINT_UNINSTALLED_OK,
+    K_LOG_INSTALLED,
+    K_LOG_UNINSTALLED,
+    K_FAIL_INSTALL,
+    K_FAIL_UNINSTALL,
+    K_OK,
+    K_CONFIRM_UNINSTALL_TITLE,
+    K_CONFIRM_UNINSTALL_INFO,
+    K_LICENSE_TITLE,
+    K_LICENSE_CHECK,
+    K_BTN_AGREE,
+    K_FMT_STATE_LINE,
+    K_MENU_ABOUT,
+    K_MENU_QUIT,
+};
+
+/* Order of columns must match the enum above. */
+static NSString * kUiStrings[][3] = {
+    [K_WINDOW_TITLE] = { @"YT6801 Installer", @"YT6801 安装器", @"YT6801 安裝器" },
+    [K_TITLE]        = { @"YT6801 Ethernet Driver", @"YT6801 有线网卡驱动", @"YT6801 有線網卡驅動" },
+    [K_SUBTITLE]     = { @"Motorcomm YT6801 Gigabit Ethernet · DriverKit System Extension",
+                         @"Motorcomm YT6801 千兆以太网 · DriverKit 系统扩展",
+                         @"Motorcomm YT6801 Gigabit 乙太網路 · DriverKit 系統擴充功能" },
+    [K_CHECKING]     = { @"Detecting…", @"正在检测…", @"正在偵測…" },
+    [K_ST_INSTALLED] = { @"Installed and active", @"已安装并正在使用", @"已安裝並正在使用" },
+    [K_FMT_VERSION]  = { @"System version %@ · Bundled version %@",
+                         @"系统版本 %@ · 内置版本 %@",
+                         @"系統版本 %@ · 內建版本 %@" },
+    [K_HINT_UP_TO_DATE] = {
+        @"Already up to date. Reinstalling only replaces the files in /Applications; "
+        "the system reloads a driver only when the version number increases.",
+        @"当前已是最新版本。重装只会覆盖 /Applications 里的文件；"
+        @"系统按版本号判断是否重新加载，同版本不会替换正在运行的驱动。",
+        @"目前已是最新版本。重新安裝只會覆蓋 /Applications 裡的檔案；"
+        @"系統會依版本號判斷是否重新載入，同版本不會替換正在執行中的驅動程式。" },
+    [K_HINT_DIFF_VERSION] = {
+        @"The bundled version differs from the installed one. Reinstall replaces the "
+        "running driver automatically — no restart required.",
+        @"安装包里的版本与系统不同，点「重装」会自动替换并让旧版本失效，不需要重启。",
+        @"安裝包內的版本與系統不同，點「重裝」會自動替換並讓舊版本失效，不需要重新開機。" },
+    [K_BTN_REINSTALL] = { @"Reinstall", @"重装", @"重裝" },
+    [K_BTN_UNINSTALL] = { @"Uninstall", @"卸载", @"解除安裝" },
+    [K_ST_TERMINATING] = { @"Old version is exiting…", @"旧版本正在退出…", @"舊版本正在退出…" },
+    [K_ST_INACTIVE]    = { @"Installed but not activated", @"已安装但未激活", @"已安裝但未啟用" },
+    [K_HINT_INACTIVE] = {
+        @"Click Reinstall to submit the activation request again. If it stays stuck, "
+        "uninstall first and install again.",
+        @"点「重装」重新提交激活请求；如果一直卡在这个状态，选「卸载」再装一次。",
+        @"點「重裝」重新送出啟用請求；如果一直卡在這個狀態，選「解除安裝」再裝一次。" },
+    [K_ST_ONDISK] = { @"Files in place, driver not activated",
+                      @"文件已就位，驱动未激活", @"檔案已就位，驅動程式未啟用" },
+    [K_FMT_ONDISK] = { @"%1$@ is in /Applications, but missing from the system list",
+                       @"/Applications 里有 %1$@，但系统列表里没有",
+                       @"/Applications 裡有 %1$@，但系統清單裡沒有" },
+    [K_HINT_ONDISK] = {
+        @"Click Install to activate again. The files are already in place and will not be copied twice.",
+        @"点「安装」重新激活，文件已经在了，不会重复复制。",
+        @"點「安裝」重新啟用，檔案已經在了，不會重複複製。" },
+    [K_ST_NOTINSTALLED] = { @"Not installed", @"未安装", @"未安裝" },
+    [K_FMT_BUNDLED]  = { @"Bundled driver version %@", @"安装包内置版本 %@", @"安裝包內建版本 %@" },
+    [K_HINT_FRESH] = {
+        @"Installing deploys the driver to /Applications/YT6801Driver.app and registers "
+        "the system extension. No restart, no impact on your current network.",
+        @"安装会把驱动部署到 /Applications/YT6801Driver.app 并注册系统扩展。"
+        @"全程不重启，不影响当前网络。",
+        @"安裝會把驅動程式部署到 /Applications/YT6801Driver.app 並註冊系統擴充功能。"
+        @"全程不需重新開機，不會影響目前的網路。" },
+    [K_BTN_INSTALL]  = { @"Install", @"安装", @"安裝" },
+    [K_BTN_CANCEL]   = { @"Cancel", @"取消", @"取消" },
+    [K_BTN_DETAILS]  = { @"Details ▾", @"查看详情 ▾", @"查看詳情 ▾" },
+    [K_BTN_HIDE_DETAILS] = { @"Hide details ▴", @"收起详情 ▴", @"收起詳情 ▴" },
+    [K_LOG_DETAIL_OPEN] = { @"— details expanded —", @"— 详情窗口已展开 —", @"— 詳情視窗已展開 —" },
+    [K_INSTALLING]   = { @"Installing…", @"正在安装…", @"正在安裝…" },
+    [K_UNINSTALLING] = { @"Uninstalling…", @"正在卸载…", @"正在解除安裝…" },
+    [K_DONE_INSTALL]   = { @"Installation complete", @"安装完成", @"安裝完成" },
+    [K_DONE_UNINSTALL] = { @"Uninstalled", @"卸载完成", @"解除安裝完成" },
+    [K_BTN_DONE]     = { @"Done", @"完成", @"完成" },
+    [K_HINT_INSTALLED_OK] = {
+        @"Installation complete. Plug in the cable and it works — no restart needed.",
+        @"安装完成。插上网线即可使用，不需要重启。",
+        @"安裝完成。插上網路線即可使用，不需要重新開機。" },
+    [K_HINT_UNINSTALLED_OK] = {
+        @"Uninstalled. Feel free to keep the installer around for next time.",
+        @"已卸载。安装器可以留着，随时再装。",
+        @"已解除安裝。安裝程式可以留著，隨時再裝。" },
+    [K_LOG_INSTALLED]   = { @"✓ installed", @"✓ 安装完成", @"✓ 安裝完成" },
+    [K_LOG_UNINSTALLED] = { @"✓ uninstalled", @"✓ 卸载完成", @"✓ 解除安裝完成" },
+    [K_FAIL_INSTALL]   = { @"Installation failed", @"安装没有完成", @"安裝未完成" },
+    [K_FAIL_UNINSTALL] = { @"Uninstall failed", @"卸载没有完成", @"解除安裝未完成" },
+    [K_OK]             = { @"OK", @"好", @"好" },
+    [K_CONFIRM_UNINSTALL_TITLE] = {
+        @"Uninstall the YT6801 driver?", @"要卸载 YT6801 驱动吗？", @"要解除安裝 YT6801 驅動程式嗎？" },
+    [K_CONFIRM_UNINSTALL_INFO] = {
+        @"This removes the system extension; your wired network will go down. "
+        "The installer stays and you can reinstall anytime. No restart needed.",
+        @"会从系统里移除这个系统扩展，当前有线网络会断开。"
+        @"安装器本身会保留，随时可以再装回来。不需要重启。",
+        @"會從系統裡移除此系統擴充功能，目前的有線網路會中斷。"
+        @"安裝程式本身會保留，隨時可以再裝回來。不需要重新開機。" },
+    [K_LICENSE_TITLE] = { @"License Agreement", @"用户许可协议", @"使用者授權協議" },
+    [K_LICENSE_CHECK] = {
+        @"I have read and agree to all terms (free of charge · GPL-2.0 open source)",
+        @"我已阅读并同意上述全部条款（完全免费 · GPL-2.0 开源许可证）",
+        @"我已閱讀並同意上述全部條款（完全免費 · GPL-2.0 開源授權）" },
+    [K_BTN_AGREE]    = { @"Agree and Continue", @"同意并继续", @"同意並繼續" },
+    [K_FMT_STATE_LINE] = { @"System version %1$@ · %2$@", @"系统版本 %1$@ · %2$@", @"系統版本 %1$@ · %2$@" },
+    [K_MENU_ABOUT]   = { @"About YT6801 Installer", @"关于 YT6801 安装器", @"關於 YT6801 安裝器" },
+    [K_MENU_QUIT]    = { @"Quit YT6801 Installer", @"退出 YT6801 安装器", @"結束 YT6801 安裝器" },
+};
+
+static NSString *
+S(NSInteger k)
+{
+    return kUiStrings[k][gLang];
+}
+
 /* ------------------------------------------------------------------ */
 #pragma mark - License text
+
+/* Plain-language summary; the binding license (GPL-2.0-or-later) ships
+ * with the source as the LICENSE file. */
 
 static NSString *
 licenseText(void)
 {
-    return @"YT6801 有线网卡驱动 · 用户许可协议\n"
-           @"最后更新：2026 年 10 月\n\n"
-           @"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-           @"一、完全免费\n"
-           @"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-           @"本软件及其全部源代码完全免费，遵循 MIT 许可证发布。\n"
-           @"任何人都可以自由使用、修改、再分发，包括商业用途，无需支付任何费用，"
-           @"也无需署名（但保留原始版权声明是礼貌）。\n\n"
-           @"本软件不含任何付费功能、订阅、内购、广告或功能限制。\n"
-           @"如果你是通过付费渠道获得本软件的，说明你被中间商赚了差价。\n\n"
-           @"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-           @"二、MIT 许可证全文\n"
-           @"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-           @"Copyright (c) 2026 YT6801 Driver Contributors\n\n"
-           @"Permission is hereby granted, free of charge, to any person obtaining a copy\n"
-           @"of this software and associated documentation files (the \"Software\"), to deal\n"
-           @"in the Software without restriction, including without limitation the rights\n"
-           @"to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n"
-           @"copies of the Software, and to permit persons to whom the Software is\n"
-           @"furnished to do so, subject to the following conditions:\n\n"
-           @"The above copyright notice and this permission notice shall be included in all\n"
-           @"copies or substantial portions of the Software.\n\n"
-           @"THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n"
-           @"IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n"
-           @"FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n"
-           @"AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n"
-           @"LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n"
-           @"OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n"
-           @"SOFTWARE.\n\n"
-           @"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-           @"三、系统扩展说明\n"
-           @"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-           @"本软件包含一个 DriverKit 系统扩展（DEXT），用于驱动 Motorcomm YT6801\n"
-           @"千兆以太网控制器（PCI ID 1f0a:6801）。\n\n"
-           @"• 安装位置：/Applications/YT6801Driver.app\n"
-           @"• 驱动类型：DriverKit 用户态驱动，不注入内核，不修改系统文件\n"
-           @"• 卸载方式：本安装器的「卸载」按钮\n\n"
-           @"首次安装时，macOS 可能要求你在「系统设置 > 通用 > 登录项与扩展 >\n"
-           @"驱动扩展」中手动批准一次。这是系统强制流程，任何第三方安装器都无法绕过。\n"
-           @"批准后无需重启。\n\n"
-           @"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-           @"四、隐私\n"
-           @"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-           @"本软件不联网、不收集任何数据、不含遥测与统计上报。\n"
-           @"驱动在本地处理网络数据包，不会读取、复制或外传你的任何内容。\n\n"
-           @"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-           @"五、免责声明\n"
-           @"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-           @"本软件按「原样」提供，不附带任何明示或暗示的担保。\n"
-           @"在非官方硬件（黑苹果 / Hackintosh）环境下使用本软件可能存在未知风险，\n"
-           @"包括但不限于：系统不稳定、网络中断、需要手动恢复。\n\n"
-           @"作者不对因使用本软件造成的任何直接或间接损失承担责任。\n"
-           @"请在充分了解风险的前提下自行决定是否安装。\n\n"
-           @"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-           @"勾选下方方框即表示你已阅读、理解并同意上述全部条款。\n";
+    switch (gLang) {
+    case 0: return
+        @"YT6801 Ethernet Driver · License Agreement\n"
+        @"Last updated: October 2026\n\n"
+        @"1. Free and open source\n\n"
+        @"This driver is completely free of charge. It is released under the\n"
+        @"GNU GPL v2.0 (or later) open source license: you may use, study,\n"
+        @"modify and redistribute it. If you distribute it — modified or not —\n"
+        @"the same license applies and the source stays open. There are no\n"
+        @"paid features, ads, subscriptions or telemetry.\n\n"
+        @"2. What it installs\n\n"
+        @"A DriverKit system extension that drives the Motorcomm YT6801\n"
+        @"gigabit Ethernet controller (PCI ID 1f0a:6801).\n\n"
+        @"• Deployed to: /Applications/YT6801Driver.app\n"
+        @"• Runs in user space: does not modify the kernel or system files\n"
+        @"• Remove anytime with the Uninstall button\n\n"
+        @"macOS may ask you to approve the extension once in System Settings\n"
+        @"> General > Login Items & Extensions > Driver Extensions. This is a\n"
+        @"system requirement no installer can bypass. No restart is needed.\n\n"
+        @"3. Privacy\n\n"
+        @"This software works fully offline. It does not collect, store or\n"
+        @"send any data. Network packets are processed locally by the driver.\n\n"
+        @"4. No warranty\n\n"
+        @"The software is provided \u201cas is\u201d, without warranty of any kind.\n"
+        @"Using it on unsupported hardware (Hackintosh) carries risks such as\n"
+        @"system instability or network interruption. The author is not liable\n"
+        @"for any damage caused by the use of this software.\n\n"
+        @"By checking the box below you confirm that you have read, understood\n"
+        @"and agreed to all of the above.\n";
+    case 1: return
+        @"YT6801 有线网卡驱动 · 用户许可协议\n"
+        @"最后更新：2026 年 10 月\n\n"
+        @"一、免费且开源\n\n"
+        @"本驱动完全免费。它以 GNU GPL v2.0（或更新版本）开源许可证发布：\n"
+        @"你可以自由使用、学习、修改和再分发本软件。无论是否修改，再分发时\n"
+        @"须继续采用同一许可证并保持开源。本软件不含任何付费功能、广告、\n"
+        @"订阅或数据统计。\n\n"
+        @"二、安装内容\n\n"
+        @"一个 DriverKit 系统扩展，用于驱动 Motorcomm YT6801 千兆以太网\n"
+        @"控制器（PCI ID 1f0a:6801）。\n\n"
+        @"• 安装位置：/Applications/YT6801Driver.app\n"
+        @"• 运行在用户态：不修改内核，不改动系统文件\n"
+        @"• 随时可用「卸载」按钮移除\n\n"
+        @"首次安装时，macOS 可能要求你在「系统设置 > 通用 > 登录项与扩展 >\n"
+        @"驱动扩展」中手动批准一次。这是系统强制流程，任何安装器都无法绕过。\n"
+        @"批准后无需重启。\n\n"
+        @"三、隐私\n\n"
+        @"本软件完全在本地工作，不联网、不收集、不存储、不外传任何数据。\n"
+        @"网络数据包由驱动在本地处理。\n\n"
+        @"四、免责声明\n\n"
+        @"本软件按「原样」提供，不附带任何明示或暗示的担保。\n"
+        @"在非官方支持的硬件（黑苹果 / Hackintosh）上使用可能存在系统不稳定、\n"
+        @"网络中断等风险。作者不对因使用本软件造成的任何损失承担责任。\n\n"
+        @"勾选下方方框即表示你已阅读、理解并同意上述全部条款。\n";
+    default: return
+        @"YT6801 有線網卡驅動程式 · 使用者授權協議\n"
+        @"最後更新：2026 年 10 月\n\n"
+        @"一、免費且開源\n\n"
+        @"本驅動程式完全免費。它以 GNU GPL v2.0（或更新版本）開源授權釋出：\n"
+        @"你可以自由使用、學習、修改與再散布本軟體。無論是否修改，再散布時\n"
+        @"須繼續採用同一授權並保持開源。本軟體不含任何付費功能、廣告、\n"
+        @"訂閱或資料統計。\n\n"
+        @"二、安裝內容\n\n"
+        @"一個 DriverKit 系統擴充功能，用於驅動 Motorcomm YT6801 Gigabit\n"
+        @"乙太網路控制器（PCI ID 1f0a:6801）。\n\n"
+        @"• 安裝位置：/Applications/YT6801Driver.app\n"
+        @"• 執行於使用者態：不修改核心，不更動系統檔案\n"
+        @"• 隨時可用「解除安裝」按鈕移除\n\n"
+        @"首次安裝時，macOS 可能會要求你在「系統設定 > 一般 > 登入項目與\n"
+        @"延伸功能 > 驅動程式延伸功能」中手動核准一次。這是系統強制流程，\n"
+        @"任何安裝程式都無法繞過。核准後無需重新開機。\n\n"
+        @"三、隱私\n\n"
+        @"本軟體完全在本機運作，不連網、不收集、不儲存、不外傳任何資料。\n"
+        @"網路封包由驅動程式在本機處理。\n\n"
+        @"四、免責聲明\n\n"
+        @"本軟體按「現狀」提供，不附帶任何明示或默示之擔保。\n"
+        @"在非官方支援的硬體（黑蘋果 / Hackintosh）上使用，可能存在系統\n"
+        @"不穩定、網路中斷等風險。作者不對因使用本軟體造成的任何損失承擔責任。\n\n"
+        @"勾選下方方塊即表示你已閱讀、理解並同意上述全部條款。\n";
+    }
 }
 
 /* ------------------------------------------------------------------ */
@@ -834,141 +1016,23 @@ licenseText(void)
 
 - (void)applicationDidFinishLaunching:(NSNotification *)note
 {
-    [self buildWindow];
-    [self refreshState];
+    self.window = [[NSWindow alloc]
+                   initWithContentRect:NSMakeRect(0, 0, 640, 430)
+                             styleMask:(NSWindowStyleMaskTitled |
+                                        NSWindowStyleMaskClosable |
+                                        NSWindowStyleMaskMiniaturizable)
+                               backing:NSBackingStoreBuffered
+                                 defer:NO];
+    self.window.backgroundColor = [NSColor windowBackgroundColor];
+    [self.window center];
+    [self showLanguageStep];
+    [self.window makeKeyAndOrderFront:nil];
     [NSApp activateIgnoringOtherApps:YES];
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
 {
     return YES;
-}
-
-- (void)buildWindow
-{
-    NSRect frame = NSMakeRect(0, 0, 720, 620);
-    self.window = [[NSWindow alloc]
-                   initWithContentRect:frame
-                             styleMask:(NSWindowStyleMaskTitled |
-                                        NSWindowStyleMaskClosable |
-                                        NSWindowStyleMaskMiniaturizable)
-                               backing:NSBackingStoreBuffered
-                                 defer:NO];
-    self.window.title = @"YT6801 安装器";
-    self.window.backgroundColor = [NSColor windowBackgroundColor];
-    [self.window center];
-
-    NSView * c = self.window.contentView;
-    CGFloat W = 720;
-
-    /* Icon */
-    NSImageView * icon = [[NSImageView alloc] initWithFrame:NSMakeRect(40, 520, 64, 64)];
-    icon.image = [NSImage imageWithSystemSymbolName:@"network"
-                           accessibilityDescription:@"网卡"];
-    icon.contentTintColor = [NSColor controlAccentColor];
-    icon.imageScaling = NSImageScaleProportionallyUpOrDown;
-    [c addSubview:icon];
-
-    /* Title */
-    NSTextField * title = [self labelWithFrame:NSMakeRect(120, 556, W - 160, 28)
-                                          text:@"YT6801 有线网卡驱动"
-                                          size:22 bold:YES];
-    [c addSubview:title];
-
-    NSTextField * sub = [self labelWithFrame:NSMakeRect(120, 530, W - 160, 20)
-                                        text:@"Motorcomm YT6801 千兆以太网 · DriverKit 系统扩展"
-                                        size:12 bold:NO];
-    sub.textColor = [NSColor secondaryLabelColor];
-    [c addSubview:sub];
-
-    /* Status card */
-    NSBox * card = [[NSBox alloc] initWithFrame:NSMakeRect(40, 430, W - 80, 78)];
-    card.boxType = NSBoxCustom;
-    card.borderWidth = 0;
-    card.fillColor = [NSColor controlBackgroundColor];
-    card.cornerRadius = 10;
-    [c addSubview:card];
-
-    self.dot = [[NSView alloc] initWithFrame:NSMakeRect(22, 46, 10, 10)];
-    self.dot.wantsLayer = YES;
-    self.dot.layer.cornerRadius = 5;
-    self.dot.layer.backgroundColor = [NSColor systemGrayColor].CGColor;
-    [card addSubview:self.dot];
-
-    self.statusLabel = [self labelWithFrame:NSMakeRect(44, 40, W - 200, 22)
-                                       text:@"正在检测…"
-                                       size:15 bold:YES];
-    [card addSubview:self.statusLabel];
-
-    self.versionLabel = [self labelWithFrame:NSMakeRect(44, 14, W - 200, 18)
-                                        text:@""
-                                        size:12 bold:NO];
-    self.versionLabel.textColor = [NSColor secondaryLabelColor];
-    [card addSubview:self.versionLabel];
-
-    /* Hint */
-    self.hintLabel = [self labelWithFrame:NSMakeRect(40, 372, W - 80, 46)
-                                     text:@""
-                                     size:12 bold:NO];
-    self.hintLabel.textColor = [NSColor secondaryLabelColor];
-    self.hintLabel.maximumNumberOfLines = 3;
-    self.hintLabel.lineBreakMode = NSLineBreakByWordWrapping;
-    [c addSubview:self.hintLabel];
-
-    /* Progress bar */
-    self.progress = [[NSProgressIndicator alloc] initWithFrame:NSMakeRect(40, 336, W - 130, 12)];
-    self.progress.style = NSProgressIndicatorStyleBar;
-    self.progress.indeterminate = NO;
-    self.progress.minValue = 0;
-    self.progress.maxValue = 100;
-    self.progress.doubleValue = 0;
-    self.progress.hidden = YES;
-    [c addSubview:self.progress];
-
-    self.percentLabel = [self labelWithFrame:NSMakeRect(W - 84, 332, 44, 16)
-                                        text:@""
-                                        size:11 bold:NO];
-    self.percentLabel.alignment = NSTextAlignmentRight;
-    self.percentLabel.textColor = [NSColor secondaryLabelColor];
-    self.percentLabel.hidden = YES;
-    [c addSubview:self.percentLabel];
-
-    /* Detail log */
-    self.detailScroll = [[NSScrollView alloc] initWithFrame:NSMakeRect(40, 96, W - 80, 224)];
-    self.detailScroll.borderType = NSBezelBorder;
-    self.detailScroll.hasVerticalScroller = YES;
-    self.detailScroll.autohidesScrollers = YES;
-    self.detailScroll.hidden = YES;
-
-    self.detailView = [[NSTextView alloc] initWithFrame:self.detailScroll.bounds];
-    self.detailView.editable = NO;
-    self.detailView.selectable = YES;
-    self.detailView.drawsBackground = YES;
-    self.detailView.backgroundColor = [NSColor textBackgroundColor];
-    self.detailView.font = [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightRegular];
-    self.detailView.textContainerInset = NSMakeSize(8, 8);
-    self.detailScroll.documentView = self.detailView;
-    [c addSubview:self.detailScroll];
-
-    /* Buttons */
-    self.primaryButton = [self buttonWithFrame:NSMakeRect(W - 40 - 140, 40, 140, 34)
-                                         title:@"安装"
-                                        action:@selector(onPrimary)];
-    self.primaryButton.keyEquivalent = @"\r";
-    [c addSubview:self.primaryButton];
-
-    self.secondaryButton = [self buttonWithFrame:NSMakeRect(W - 40 - 140 - 12 - 110, 40, 110, 34)
-                                           title:@"取消"
-                                          action:@selector(onSecondary)];
-    [c addSubview:self.secondaryButton];
-
-    self.detailButton = [self buttonWithFrame:NSMakeRect(40, 44, 130, 26)
-                                        title:@"查看详情 ▾"
-                                       action:@selector(onToggleDetail)];
-    self.detailButton.bezelStyle = NSBezelStyleInline;
-    [c addSubview:self.detailButton];
-
-    [self.window makeKeyAndOrderFront:nil];
 }
 
 - (NSTextField *)labelWithFrame:(NSRect)f text:(NSString *)t size:(CGFloat)s bold:(BOOL)b
@@ -994,6 +1058,221 @@ licenseText(void)
     return b;
 }
 
+/* ---- Step 1: language picker (all three languages shown together) ---- */
+- (void)showLanguageStep
+{
+    [self.window setTitle:S(K_WINDOW_TITLE)];
+    NSView * c = self.window.contentView;
+    [c.subviews makeObjectsPerformSelector:@selector(removeFromSuperview)];
+
+    NSTextField * title = [self labelWithFrame:NSMakeRect(40, 330, 560, 30)
+                                         text:@"Select a language · 请选择语言 · 請選擇語言"
+                                         size:20 bold:YES];
+    title.alignment = NSTextAlignmentCenter;
+    [c addSubview:title];
+
+    NSTextField * sub = [self labelWithFrame:NSMakeRect(40, 300, 560, 20)
+                                        text:@"YT6801 Ethernet Driver Installer · YT6801 有线网卡驱动安装器 · YT6801 有線網卡驅動程式安裝器"
+                                        size:12 bold:NO];
+    sub.alignment = NSTextAlignmentCenter;
+    sub.textColor = [NSColor secondaryLabelColor];
+    [c addSubview:sub];
+
+    NSButton * en   = [self buttonWithFrame:NSMakeRect(70, 190, 150, 44) title:@"English"
+                                     action:@selector(onLangEn:)];
+    NSButton * hans = [self buttonWithFrame:NSMakeRect(245, 190, 150, 44) title:@"简体中文"
+                                     action:@selector(onLangHans:)];
+    NSButton * hant = [self buttonWithFrame:NSMakeRect(420, 190, 150, 44) title:@"繁體中文"
+                                     action:@selector(onLangHant:)];
+    for (NSButton * b in @[ en, hans, hant ]) {
+        b.font = [NSFont systemFontOfSize:15 weight:NSFontWeightMedium];
+    }
+    [c addSubview:en];
+    [c addSubview:hans];
+    [c addSubview:hant];
+}
+
+- (void)onLangEn:(NSButton *)sender   { gLang = 0; [self showLicenseStep]; }
+- (void)onLangHans:(NSButton *)sender { gLang = 1; [self showLicenseStep]; }
+- (void)onLangHant:(NSButton *)sender { gLang = 2; [self showLicenseStep]; }
+
+/* ---- Step 2: license agreement, before any install UI exists ---- */
+- (void)showLicenseStep
+{
+    [self.window setContentSize:NSMakeSize(660, 600)];
+    [self.window setTitle:S(K_LICENSE_TITLE)];
+    NSView * c = self.window.contentView;
+    [c.subviews makeObjectsPerformSelector:@selector(removeFromSuperview)];
+    CGFloat W = 660;
+
+    NSTextField * t = [self labelWithFrame:NSMakeRect(24, 556, W - 48, 26)
+                                      text:S(K_LICENSE_TITLE)
+                                      size:18 bold:YES];
+    [c addSubview:t];
+
+    NSScrollView * sv = [[NSScrollView alloc] initWithFrame:NSMakeRect(24, 110, W - 48, 436)];
+    sv.borderType = NSBezelBorder;
+    sv.hasVerticalScroller = YES;
+    NSTextView * tv = [[NSTextView alloc] initWithFrame:sv.bounds];
+    tv.editable = NO;
+    tv.string = licenseText();
+    tv.font = [NSFont systemFontOfSize:12];
+    tv.textContainerInset = NSMakeSize(10, 10);
+    sv.documentView = tv;
+    [c addSubview:sv];
+
+    NSButton * check = [[NSButton alloc] initWithFrame:NSMakeRect(24, 74, W - 48, 22)];
+    [check setButtonType:NSButtonTypeSwitch];
+    check.title = S(K_LICENSE_CHECK);
+    check.target = self;
+    check.action = @selector(onLicenseCheckChanged:);
+    [c addSubview:check];
+
+    NSButton * cancel = [self buttonWithFrame:NSMakeRect(W - 24 - 90 - 12 - 110, 24, 110, 32)
+                                        title:S(K_BTN_CANCEL)
+                                       action:@selector(onLicenseCancel)];
+    [c addSubview:cancel];
+
+    NSButton * agree = [self buttonWithFrame:NSMakeRect(W - 24 - 90, 24, 90, 32)
+                                       title:S(K_BTN_AGREE)
+                                      action:@selector(onLicenseAgree:)];
+    agree.keyEquivalent = @"\r";
+    agree.enabled = NO;
+    agree.tag = 1002;
+    [c addSubview:agree];
+}
+
+- (void)onLicenseCheckChanged:(NSButton *)sender
+{
+    NSView * c = self.window.contentView;
+    NSButton * agree = [c viewWithTag:1002];
+    agree.enabled = (sender.state == NSControlStateValueOn);
+}
+
+- (void)onLicenseCancel
+{
+    [NSApp terminate:nil];
+}
+
+- (void)onLicenseAgree:(NSButton *)sender
+{
+    self.licenseAccepted = YES;
+    [self buildMainWindow];
+    [self refreshState];
+}
+
+/* ---- Step 3: main window (reachable only after accepting) ---- */
+- (void)buildMainWindow
+{
+    [self.window setContentSize:NSMakeSize(720, 620)];
+    [self.window setTitle:S(K_WINDOW_TITLE)];
+    NSView * c = self.window.contentView;
+    [c.subviews makeObjectsPerformSelector:@selector(removeFromSuperview)];
+    CGFloat W = 720;
+
+    NSImageView * icon = [[NSImageView alloc] initWithFrame:NSMakeRect(40, 520, 64, 64)];
+    icon.image = [NSImage imageWithSystemSymbolName:@"network"
+                           accessibilityDescription:@"NIC"];
+    icon.contentTintColor = [NSColor controlAccentColor];
+    icon.imageScaling = NSImageScaleProportionallyUpOrDown;
+    [c addSubview:icon];
+
+    NSTextField * title = [self labelWithFrame:NSMakeRect(120, 556, W - 160, 28)
+                                          text:S(K_TITLE)
+                                          size:22 bold:YES];
+    [c addSubview:title];
+
+    NSTextField * sub = [self labelWithFrame:NSMakeRect(120, 530, W - 160, 20)
+                                        text:S(K_SUBTITLE)
+                                        size:12 bold:NO];
+    sub.textColor = [NSColor secondaryLabelColor];
+    [c addSubview:sub];
+
+    NSBox * card = [[NSBox alloc] initWithFrame:NSMakeRect(40, 430, W - 80, 78)];
+    card.boxType = NSBoxCustom;
+    card.borderWidth = 0;
+    card.fillColor = [NSColor controlBackgroundColor];
+    card.cornerRadius = 10;
+    [c addSubview:card];
+
+    self.dot = [[NSView alloc] initWithFrame:NSMakeRect(22, 46, 10, 10)];
+    self.dot.wantsLayer = YES;
+    self.dot.layer.cornerRadius = 5;
+    self.dot.layer.backgroundColor = [NSColor systemGrayColor].CGColor;
+    [card addSubview:self.dot];
+
+    self.statusLabel = [self labelWithFrame:NSMakeRect(44, 40, W - 200, 22)
+                                       text:S(K_CHECKING)
+                                       size:15 bold:YES];
+    [card addSubview:self.statusLabel];
+
+    self.versionLabel = [self labelWithFrame:NSMakeRect(44, 14, W - 200, 18)
+                                        text:@""
+                                        size:12 bold:NO];
+    self.versionLabel.textColor = [NSColor secondaryLabelColor];
+    [card addSubview:self.versionLabel];
+
+    self.hintLabel = [self labelWithFrame:NSMakeRect(40, 372, W - 80, 46)
+                                     text:@""
+                                     size:12 bold:NO];
+    self.hintLabel.textColor = [NSColor secondaryLabelColor];
+    self.hintLabel.maximumNumberOfLines = 3;
+    self.hintLabel.lineBreakMode = NSLineBreakByWordWrapping;
+    [c addSubview:self.hintLabel];
+
+    self.progress = [[NSProgressIndicator alloc] initWithFrame:NSMakeRect(40, 336, W - 130, 12)];
+    self.progress.style = NSProgressIndicatorStyleBar;
+    self.progress.indeterminate = NO;
+    self.progress.minValue = 0;
+    self.progress.maxValue = 100;
+    self.progress.doubleValue = 0;
+    self.progress.hidden = YES;
+    [c addSubview:self.progress];
+
+    self.percentLabel = [self labelWithFrame:NSMakeRect(W - 84, 332, 44, 16)
+                                        text:@""
+                                        size:11 bold:NO];
+    self.percentLabel.alignment = NSTextAlignmentRight;
+    self.percentLabel.textColor = [NSColor secondaryLabelColor];
+    self.percentLabel.hidden = YES;
+    [c addSubview:self.percentLabel];
+
+    self.detailScroll = [[NSScrollView alloc] initWithFrame:NSMakeRect(40, 96, W - 80, 224)];
+    self.detailScroll.borderType = NSBezelBorder;
+    self.detailScroll.hasVerticalScroller = YES;
+    self.detailScroll.autohidesScrollers = YES;
+    self.detailScroll.hidden = YES;
+
+    self.detailView = [[NSTextView alloc] initWithFrame:self.detailScroll.bounds];
+    self.detailView.editable = NO;
+    self.detailView.selectable = YES;
+    self.detailView.drawsBackground = YES;
+    self.detailView.backgroundColor = [NSColor textBackgroundColor];
+    self.detailView.font = [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightRegular];
+    self.detailView.textContainerInset = NSMakeSize(8, 8);
+    self.detailScroll.documentView = self.detailView;
+    [c addSubview:self.detailScroll];
+
+    self.primaryButton = [self buttonWithFrame:NSMakeRect(W - 40 - 140, 40, 140, 34)
+                                         title:S(K_BTN_INSTALL)
+                                        action:@selector(onPrimary)];
+    self.primaryButton.keyEquivalent = @"\r";
+    [c addSubview:self.primaryButton];
+
+    self.secondaryButton = [self buttonWithFrame:NSMakeRect(W - 40 - 140 - 12 - 110, 40, 110, 34)
+                                           title:S(K_BTN_CANCEL)
+                                          action:@selector(onSecondary)];
+    [c addSubview:self.secondaryButton];
+
+    self.detailButton = [self buttonWithFrame:NSMakeRect(40, 44, 130, 26)
+                                        title:S(K_BTN_DETAILS)
+                                       action:@selector(onToggleDetail)];
+    self.detailButton.bezelStyle = NSBezelStyleInline;
+    [c addSubview:self.detailButton];
+
+    [self.window makeFirstResponder:self.primaryButton];
+}
+
 - (void)refreshState
 {
     if (self.finishedInstall) {
@@ -1010,44 +1289,43 @@ licenseText(void)
 
     if (st.installed && st.enabled) {
         BOOL sameVersion = [st.version isEqualToString:builtinVersion()];
-        self.statusLabel.stringValue = @"已安装并正在使用";
+        self.statusLabel.stringValue = S(K_ST_INSTALLED);
         self.versionLabel.stringValue =
-            [NSString stringWithFormat:@"系统版本 %@ · 内置版本 %@",
-             st.version.length ? st.version : @"未知", builtinVersion()];
+            [NSString stringWithFormat:S(K_FMT_VERSION),
+             st.version.length ? st.version : @"?", builtinVersion()];
         self.dot.layer.backgroundColor = [NSColor systemGreenColor].CGColor;
-        self.hintLabel.stringValue = sameVersion
-            ? @"当前已是最新版本。重装只会覆盖 /Applications 里的文件；"
-              @"系统按版本号判断是否重新加载，同版本不会替换正在运行的驱动。"
-            : @"安装包里的版本与系统不同，点「重装」会自动替换并让旧版本失效，不需要重启。";
-        self.primaryButton.title = @"重装";
-        self.secondaryButton.title = @"卸载";
+        self.hintLabel.stringValue = sameVersion ? S(K_HINT_UP_TO_DATE) : S(K_HINT_DIFF_VERSION);
+        self.primaryButton.title = S(K_BTN_REINSTALL);
+        self.secondaryButton.title = S(K_BTN_UNINSTALL);
+        self.secondaryButton.hidden = NO;
     } else if (st.installed && !st.enabled) {
-        self.statusLabel.stringValue = st.terminating ? @"旧版本正在退出…" : @"已安装但未激活";
+        self.statusLabel.stringValue = st.terminating ? S(K_ST_TERMINATING) : S(K_ST_INACTIVE);
         self.versionLabel.stringValue =
-            [NSString stringWithFormat:@"系统版本 %@ · %@", st.version ?: @"", st.stateText ?: @""];
+            [NSString stringWithFormat:S(K_FMT_STATE_LINE),
+             st.version ?: @"", st.stateText ?: @""];
         self.dot.layer.backgroundColor = [NSColor systemOrangeColor].CGColor;
-        self.hintLabel.stringValue =
-            @"点「重装」重新提交激活请求；如果一直卡在这个状态，选「卸载」再装一次。";
-        self.primaryButton.title = @"重装";
-        self.secondaryButton.title = @"卸载";
+        self.hintLabel.stringValue = S(K_HINT_INACTIVE);
+        self.primaryButton.title = S(K_BTN_REINSTALL);
+        self.secondaryButton.title = S(K_BTN_UNINSTALL);
+        self.secondaryButton.hidden = NO;
     } else if (onDisk) {
-        self.statusLabel.stringValue = @"文件已就位，驱动未激活";
+        self.statusLabel.stringValue = S(K_ST_ONDISK);
         self.versionLabel.stringValue =
-            [NSString stringWithFormat:@"/Applications 里有 %@，但系统列表里没有", builtinVersion()];
+            [NSString stringWithFormat:S(K_FMT_ONDISK), builtinVersion()];
         self.dot.layer.backgroundColor = [NSColor systemOrangeColor].CGColor;
-        self.hintLabel.stringValue = @"点「安装」重新激活，文件已经在了，不会重复复制。";
-        self.primaryButton.title = @"安装";
-        self.secondaryButton.title = @"取消";
+        self.hintLabel.stringValue = S(K_HINT_ONDISK);
+        self.primaryButton.title = S(K_BTN_INSTALL);
+        self.secondaryButton.title = S(K_BTN_CANCEL);
+        self.secondaryButton.hidden = NO;
     } else {
-        self.statusLabel.stringValue = @"未安装";
+        self.statusLabel.stringValue = S(K_ST_NOTINSTALLED);
         self.versionLabel.stringValue =
-            [NSString stringWithFormat:@"安装包内置版本 %@", builtinVersion()];
+            [NSString stringWithFormat:S(K_FMT_BUNDLED), builtinVersion()];
         self.dot.layer.backgroundColor = [NSColor systemGrayColor].CGColor;
-        self.hintLabel.stringValue =
-            @"安装会把驱动部署到 /Applications/YT6801Driver.app 并注册系统扩展。"
-            @"全程不重启，不影响当前网络。";
-        self.primaryButton.title = @"安装";
-        self.secondaryButton.title = @"取消";
+        self.hintLabel.stringValue = S(K_HINT_FRESH);
+        self.primaryButton.title = S(K_BTN_INSTALL);
+        self.secondaryButton.title = S(K_BTN_CANCEL);
+        self.secondaryButton.hidden = NO;
     }
 }
 
@@ -1055,9 +1333,9 @@ licenseText(void)
 {
     self.detailShown = !self.detailShown;
     self.detailScroll.hidden = !self.detailShown;
-    self.detailButton.title = self.detailShown ? @"收起详情 ▴" : @"查看详情 ▾";
+    self.detailButton.title = self.detailShown ? S(K_BTN_HIDE_DETAILS) : S(K_BTN_DETAILS);
     if (self.detailShown) {
-        [self appendLog:@"— 详情窗口已展开 —"];
+        [self appendLog:S(K_LOG_DETAIL_OPEN)];
     }
 }
 
@@ -1108,7 +1386,7 @@ licenseText(void)
 - (void)showCompleted:(NSString *)title
 {
     self.finishedInstall = YES;
-    self.primaryButton.title = @"完成";
+    self.primaryButton.title = S(K_BTN_DONE);
     self.primaryButton.enabled = YES;
     self.secondaryButton.hidden = YES;
     self.progress.hidden = YES;
@@ -1130,12 +1408,7 @@ licenseText(void)
     if (self.busy) {
         return;
     }
-    /* Both install and reinstall require accepting the license first;
-     * licenseAccepted is valid for the current session only. */
-    if (!self.licenseAccepted) {
-        [self showLicenseSheet];
-        return;
-    }
+    /* The license was accepted before this screen was ever shown. */
     [self runInstall];
 }
 
@@ -1155,11 +1428,10 @@ licenseText(void)
 - (void)confirmUninstall
 {
     NSAlert * a = [[NSAlert alloc] init];
-    a.messageText = @"要卸载 YT6801 驱动吗？";
-    a.informativeText = @"会从系统里移除这个系统扩展，当前有线网络会断开。"
-                        @"安装器本身会保留，随时可以再装回来。不需要重启。";
-    [a addButtonWithTitle:@"卸载"];
-    [a addButtonWithTitle:@"取消"];
+    a.messageText = S(K_CONFIRM_UNINSTALL_TITLE);
+    a.informativeText = S(K_CONFIRM_UNINSTALL_INFO);
+    [a addButtonWithTitle:S(K_BTN_UNINSTALL)];
+    [a addButtonWithTitle:S(K_BTN_CANCEL)];
     a.alertStyle = NSAlertStyleWarning;
     if ([a runModal] != NSAlertFirstButtonReturn) {
         return;
@@ -1167,82 +1439,11 @@ licenseText(void)
     [self runUninstall];
 }
 
-/* ---- License sheet ---- */
-- (void)showLicenseSheet
-{
-    NSWindow * sheet = [[NSWindow alloc]
-                        initWithContentRect:NSMakeRect(0, 0, 640, 520)
-                                  styleMask:NSWindowStyleMaskTitled
-                                    backing:NSBackingStoreBuffered
-                                      defer:NO];
-
-    NSView * c = sheet.contentView;
-
-    NSTextField * t = [self labelWithFrame:NSMakeRect(24, 478, 592, 24)
-                                      text:@"用户许可协议"
-                                      size:16 bold:YES];
-    [c addSubview:t];
-
-    NSScrollView * sv = [[NSScrollView alloc] initWithFrame:NSMakeRect(24, 108, 592, 358)];
-    sv.borderType = NSBezelBorder;
-    sv.hasVerticalScroller = YES;
-    NSTextView * tv = [[NSTextView alloc] initWithFrame:sv.bounds];
-    tv.editable = NO;
-    tv.string = licenseText();
-    tv.font = [NSFont systemFontOfSize:12];
-    tv.textContainerInset = NSMakeSize(10, 10);
-    sv.documentView = tv;
-    [c addSubview:sv];
-
-    NSButton * check = [[NSButton alloc] initWithFrame:NSMakeRect(24, 74, 480, 22)];
-    [check setButtonType:NSButtonTypeSwitch];
-    check.title = @"我已阅读并同意上述全部条款（完全免费 · MIT 许可证）";
-    check.target = self;
-    check.action = @selector(onCheckChanged:);
-    [c addSubview:check];
-
-    NSButton * cancel = [self buttonWithFrame:NSMakeRect(440, 24, 90, 32)
-                                        title:@"取消"
-                                       action:@selector(onSheetCancel)];
-    cancel.target = self;
-    [c addSubview:cancel];
-
-    NSButton * agree = [self buttonWithFrame:NSMakeRect(538, 24, 78, 32)
-                                       title:@"同意"
-                                      action:@selector(onSheetAgree:)];
-    agree.target = self;
-    agree.keyEquivalent = @"\r";
-    agree.enabled = NO;
-    agree.tag = 1001;
-    [c addSubview:agree];
-
-    [self.window beginSheet:sheet completionHandler:nil];
-}
-
-- (void)onCheckChanged:(NSButton *)sender
-{
-    NSWindow * sheet = self.window.attachedSheet;
-    NSButton * agree = [sheet.contentView viewWithTag:1001];
-    agree.enabled = (sender.state == NSControlStateValueOn);
-}
-
-- (void)onSheetCancel
-{
-    [self.window endSheet:self.window.attachedSheet];
-}
-
-- (void)onSheetAgree:(NSButton *)sender
-{
-    self.licenseAccepted = YES;
-    [self.window endSheet:self.window.attachedSheet];
-    [self runInstall];
-}
-
 /* ---- Run ---- */
 - (void)runInstall
 {
     [self setBusy:YES];
-    self.statusLabel.stringValue = @"正在安装…";
+    self.statusLabel.stringValue = S(K_INSTALLING);
     self.dot.layer.backgroundColor = [NSColor controlAccentColor].CGColor;
 
     __weak typeof(self) weakSelf = self;
@@ -1260,20 +1461,20 @@ licenseText(void)
             gLogSink = nil;
             [weakSelf setBusy:NO];
             if (err) {
-                weakSelf.statusLabel.stringValue = @"安装失败";
+                weakSelf.statusLabel.stringValue = S(K_FAIL_INSTALL);
                 weakSelf.versionLabel.stringValue = err;
                 weakSelf.dot.layer.backgroundColor = [NSColor systemRedColor].CGColor;
                 [weakSelf appendLog:[@"✗ " stringByAppendingString:err]];
                 NSAlert * a = [[NSAlert alloc] init];
-                a.messageText = @"安装没有完成";
+                a.messageText = S(K_FAIL_INSTALL);
                 a.informativeText = err;
-                [a addButtonWithTitle:@"好"];
+                [a addButtonWithTitle:S(K_OK)];
                 [a runModal];
             } else {
                 [weakSelf refreshState];
-                weakSelf.hintLabel.stringValue = @"安装完成。插上网线即可使用，不需要重启。";
-                [weakSelf appendLog:@"✓ 安装完成"];
-                [weakSelf showCompleted:@"安装完成"];
+                weakSelf.hintLabel.stringValue = S(K_HINT_INSTALLED_OK);
+                [weakSelf appendLog:S(K_LOG_INSTALLED)];
+                [weakSelf showCompleted:S(K_DONE_INSTALL)];
             }
         });
     });
@@ -1282,7 +1483,7 @@ licenseText(void)
 - (void)runUninstall
 {
     [self setBusy:YES];
-    self.statusLabel.stringValue = @"正在卸载…";
+    self.statusLabel.stringValue = S(K_UNINSTALLING);
     self.dot.layer.backgroundColor = [NSColor systemOrangeColor].CGColor;
 
     __weak typeof(self) weakSelf = self;
@@ -1300,7 +1501,7 @@ licenseText(void)
             gLogSink = nil;
             [weakSelf setBusy:NO];
             if (err) {
-                weakSelf.statusLabel.stringValue = @"卸载未完成";
+                weakSelf.statusLabel.stringValue = S(K_FAIL_UNINSTALL);
                 weakSelf.hintLabel.stringValue = err;
                 weakSelf.dot.layer.backgroundColor = [NSColor systemRedColor].CGColor;
                 [weakSelf appendLog:[@"✗ " stringByAppendingString:err]];
@@ -1310,18 +1511,15 @@ licenseText(void)
                 [weakSelf refreshState];
 
                 NSAlert * a = [[NSAlert alloc] init];
-                a.messageText = @"卸载没有完成";
-                a.informativeText = [err stringByAppendingString:
-                    @"\n\n驱动文件保持原样，可以正常使用。"
-                    @"「重装」会用安装包内的版本覆盖现有驱动，"
-                    @"要是只想换版本，用重装就够了，不需要卸载。"];
-                [a addButtonWithTitle:@"知道了"];
+                a.messageText = S(K_FAIL_UNINSTALL);
+                a.informativeText = err;
+                [a addButtonWithTitle:S(K_OK)];
                 [a runModal];
             } else {
                 [weakSelf refreshState];
-                weakSelf.hintLabel.stringValue = @"已卸载。安装器可以留着，随时再装。";
-                [weakSelf appendLog:@"✓ 卸载完成"];
-                [weakSelf showCompleted:@"卸载完成"];
+                weakSelf.hintLabel.stringValue = S(K_HINT_UNINSTALLED_OK);
+                [weakSelf appendLog:S(K_LOG_UNINSTALLED)];
+                [weakSelf showCompleted:S(K_DONE_UNINSTALL)];
             }
         });
     });
@@ -1359,13 +1557,13 @@ main(int argc, const char * argv[])
             }
 
             fprintf(stderr,
-                    "YT6801 安装器\n"
-                    "  --status      查看状态\n"
-                    "  --install     静默安装\n"
-                    "  --uninstall   静默卸载\n"
-                    "  --activate    仅激活\n"
-                    "  --deactivate  仅卸载扩展\n"
-                    "（不带参数则启动图形界面）\n");
+                    "YT6801 Installer\n"
+                    "  --status      print state\n"
+                    "  --install     silent install\n"
+                    "  --uninstall   silent uninstall\n"
+                    "  --activate    activate only\n"
+                    "  --deactivate  deactivate only\n"
+                    "(no arguments starts the GUI)\n");
             return 2;
         }
 
@@ -1377,9 +1575,10 @@ main(int argc, const char * argv[])
         NSMenuItem * appItem = [[NSMenuItem alloc] init];
         [mb addItem:appItem];
         NSMenu * sub = [[NSMenu alloc] init];
-        [sub addItemWithTitle:@"关于 YT6801 安装器" action:@selector(orderFrontStandardAboutPanel:) keyEquivalent:@""];
+        [sub addItemWithTitle:@"About YT6801 Installer"
+                       action:@selector(orderFrontStandardAboutPanel:) keyEquivalent:@""];
         [sub addItem:[NSMenuItem separatorItem]];
-        [sub addItemWithTitle:@"退出" action:@selector(terminate:) keyEquivalent:@"q"];
+        [sub addItemWithTitle:@"Quit" action:@selector(terminate:) keyEquivalent:@"q"];
         appItem.submenu = sub;
         app.mainMenu = mb;
 
