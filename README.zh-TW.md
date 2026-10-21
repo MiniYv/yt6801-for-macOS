@@ -4,6 +4,8 @@
 
 適用於 **Motorcomm YT6801 PCIe Gigabit 乙太網路控制器**（PCI `1f0a:6801`）的 macOS 使用者態 DriverKit（DEXT）網路驅動程式。
 
+**開發者：MiniYv（小禹）**
+
 本專案移植自原廠為同一晶片發布的 Linux 驅動程式（`fuxi-gmac` 驅動堆疊，原始碼收錄於 [GitHub 鏡像儲存庫](https://github.com/bartvdbraak/yt6801)，原始出處為 [Motorcomm 官網下載頁](https://www.motor-comm.com/product/ethernet-control-chip)）。依上游授權要求，本儲存庫以 **GPL-2.0 或更新版本**授權釋出。
 
 ## 功能
