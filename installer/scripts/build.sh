@@ -52,7 +52,8 @@ echo "==> Building host (headless)"
 rm -rf "$HOST"
 mkdir -p "$HOST/Contents/MacOS" "$HOST/Contents/Library/SystemExtensions"
 
-clang -fobjc-arc -O2 \
+# Hackintosh targets are x86_64; CI runners are arm64, so pin the slice.
+clang -fobjc-arc -O2 -arch x86_64 -mmacosx-version-min=15.2 \
     -framework Foundation -framework SystemExtensions -framework Security \
     -o "$HOST/Contents/MacOS/yt6801host" \
     "$ROOT/source/hostmain.m" || { red "host build failed"; exit 1; }
@@ -91,7 +92,7 @@ echo "==> Building installer GUI"
 rm -rf "$INST"
 mkdir -p "$INST/Contents/MacOS" "$INST/Contents/Resources"
 
-clang -fobjc-arc -O2 \
+clang -fobjc-arc -O2 -arch x86_64 -mmacosx-version-min=15.2 \
     -DYT_BUILTIN_VERSION="\"$VERSION\"" \
     -framework Cocoa -framework SystemExtensions -framework Security \
     -o "$INST/Contents/MacOS/YT6801Installer" \
