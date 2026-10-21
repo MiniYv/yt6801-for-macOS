@@ -32,6 +32,7 @@ static int gLang = 1;
 enum {
     H_REPLACING, H_APPROVAL_UNLOAD, H_APPROVAL_LOAD, H_REBOOT,
     H_COMPLETED, H_BANNER, H_NO_REQ, H_SUBMITTED, H_TIMEOUT, H_DETECT_FAIL,
+    H_NOT_INSTALLED,
 };
 
 /* Column order must match the enum above. */
@@ -62,6 +63,9 @@ static NSString * kHostStrings[][3] = {
                       @"TIMEOUT —— %llu 秒内没有收到 sysextd 回调",
                       @"TIMEOUT —— %llu 秒內沒有收到 sysextd 回呼" },
     [H_DETECT_FAIL] = { @"Detection failed: %s", @"检测失败：%s", @"偵測失敗：%s" },
+    [H_NOT_INSTALLED] = { @"extension_id: %@\ninstalled: no\nactive: no\nstate: not installed",
+                  @"extension_id: %@\ninstalled: 否\nactive: 否\n状态：未安装",
+                  @"extension_id: %@\ninstalled: 否\nactive: 否\n狀態：未安裝" },
 };
 
 static NSString *
@@ -174,11 +178,25 @@ printStatus(void)
     }
     NSData * d = [[pipe fileHandleForReading] readDataToEndOfFile];
     NSString * out = [[NSString alloc] initWithData:d encoding:NSUTF8StringEncoding] ?: @"";
+    BOOL found = NO;
+    NSString * state = nil;
     for (NSString * line in [out componentsSeparatedByString:@"\n"]) {
         if ([line rangeOfString:kExtensionID].location != NSNotFound) {
+            found = YES;
+            NSRange lb = [line rangeOfString:@"["];
+            NSRange rb = [line rangeOfString:@"]"];
+            if (lb.location != NSNotFound && rb.location != NSNotFound && rb.location > lb.location) {
+                state = [line substringWithRange:NSMakeRange(lb.location + 1,
+                                                             rb.location - lb.location - 1)];
+            }
             printf("%s\n", line.UTF8String);
         }
     }
+    if (!found) {
+        printf("%s\n", [[NSString stringWithFormat:SL(H_NOT_INSTALLED), kExtensionID] UTF8String]);
+        return;
+    }
+    printf("state: %s\n", (state ?: @"unknown").UTF8String);
 }
 
 int
