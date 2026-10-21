@@ -53,7 +53,7 @@ rm -rf "$HOST"
 mkdir -p "$HOST/Contents/MacOS" "$HOST/Contents/Library/SystemExtensions"
 
 clang -fobjc-arc -O2 \
-    -framework Foundation -framework SystemExtensions \
+    -framework Foundation -framework SystemExtensions -framework Security \
     -o "$HOST/Contents/MacOS/yt6801host" \
     "$ROOT/source/hostmain.m" || { red "host build failed"; exit 1; }
 
@@ -93,7 +93,7 @@ mkdir -p "$INST/Contents/MacOS" "$INST/Contents/Resources"
 
 clang -fobjc-arc -O2 \
     -DYT_BUILTIN_VERSION="\"$VERSION\"" \
-    -framework Cocoa -framework SystemExtensions \
+    -framework Cocoa -framework SystemExtensions -framework Security \
     -o "$INST/Contents/MacOS/YT6801Installer" \
     "$ROOT/source/main.m" || { red "installer build failed"; exit 1; }
 

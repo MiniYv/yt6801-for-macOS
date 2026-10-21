@@ -22,6 +22,7 @@
 
 #import <Cocoa/Cocoa.h>
 #import <SystemExtensions/SystemExtensions.h>
+#import <Security/Security.h>
 #import <sys/stat.h>
 #import <unistd.h>
 
@@ -888,43 +889,49 @@ performUninstall(double * progress, void (^tick)(double))
 
     /* OSSystemExtensionManager deactivation requests fail with UserRejected
      * (code=4) within seconds when submitted from a background (LSUIElement)
-     * host, because the approval dialog has no UI context. The reliable path
-     * is systemextensionsctl uninstall with admin privileges, which raises
-     * the standard password prompt. Success is confirmed by re-reading the
-     * system extension list, never by the child's exit status alone. */
-    NSPipe * outPipe = [NSPipe pipe];
-    NSTask * t = [[NSTask alloc] init];
-    t.launchPath = @"/usr/bin/osascript";
-    t.arguments  = @[@"-e", [NSString stringWithFormat:
-        @"do shell script \"/usr/bin/systemextensionsctl uninstall - %@\" with administrator privileges",
-        kExtID]];
-    t.standardOutput = outPipe;
-    t.standardError  = [NSPipe pipe];
-    @try {
-        [t launch];
-    } @catch (NSException * e) {
-        return [NSString stringWithFormat:S(K_CANNOT_START_UNIN), e.reason];
+     * host, because the approval dialog has no UI context. osascript's
+     * "with administrator privileges" also fails: systemextensionsctl runs
+     * its own AuthorizationCreate afterwards, and the shell osascript spawns
+     * has no interactive audit session (error 70). The working path is
+     * AuthorizationExecuteWithPrivileges from this GUI process: the password
+     * dialog is raised here, and the root child inherits this app's
+     * interactive session, so both authorization layers succeed. */
+    AuthorizationRef auth = NULL;
+    OSStatus rc = AuthorizationCreate(NULL, kAuthorizationEmptyEnvironment,
+                                      kAuthorizationFlagDefaults, &auth);
+    if (rc != errAuthorizationSuccess) {
+        return [NSString stringWithFormat:S(K_UNINSTALL_FAIL_FMT),
+                [NSString stringWithFormat:@"%@ (err %d)", S(K_AUTH_DENIED), (int)rc]];
     }
 
-    /* Wait up to 5 minutes: the user may take time typing the password. */
-    for (int i = 0; i < 3000 && [t isRunning]; i++) {
-        usleep(100 * 1000);
+    char extId[128] = "";
+    [kExtID getCString:extId maxLength:sizeof(extId) encoding:NSUTF8StringEncoding];
+    char * args[] = { (char *)"uninstall", (char *)"-", extId, NULL };
+    FILE * fp = NULL;
+    rc = AuthorizationExecuteWithPrivileges(auth, "/usr/bin/systemextensionsctl",
+                                            kAuthorizationFlagDefaults, args, &fp);
+    if (rc == errAuthorizationCanceled) {
+        AuthorizationFree(auth, kAuthorizationFlagDestroyRights);
+        return S(K_CANCELED);
     }
-    if ([t isRunning]) {
-        [t terminate];
-        return S(K_AUTH_TIMEOUT);
+    if (rc != errAuthorizationSuccess || fp == NULL) {
+        AuthorizationFree(auth, kAuthorizationFlagDestroyRights);
+        return [NSString stringWithFormat:S(K_UNINSTALL_FAIL_FMT),
+                [NSString stringWithFormat:@"%@ (err %d)", S(K_AUTH_DENIED), (int)rc]];
     }
-    [t waitUntilExit];
 
-    if (t.terminationStatus != 0) {
-        NSData * e = [[t.standardError fileHandleForReading] readDataToEndOfFile];
-        NSString * msg = [[NSString alloc] initWithData:e encoding:NSUTF8StringEncoding] ?: @"";
-        /* osascript reports cancellation in the user's system language */
-        if ([msg containsString:@"canceled"] || [msg containsString:@"取消"] ||
-            [msg containsString:@"已取消"]) {
-            return S(K_CANCELED);
-        }
-        return [NSString stringWithFormat:S(K_UNINSTALL_FAIL_FMT), msg ?: S(K_AUTH_DENIED)];
+    /* Drain the child's output; EOF means it has exited. Collect the text
+     * so failures can be shown in the detail view. */
+    NSMutableString * out = [NSMutableString string];
+    char buf[512];
+    size_t n;
+    while ((n = fread(buf, 1, sizeof(buf), fp)) > 0) {
+        [out appendFormat:@"%.*s", (int)n, buf];
+    }
+    fclose(fp);
+    AuthorizationFree(auth, kAuthorizationFlagDestroyRights);
+    if (out.length) {
+        appendDetail(out);
     }
 
     /* Double-check with the system before touching any files */
