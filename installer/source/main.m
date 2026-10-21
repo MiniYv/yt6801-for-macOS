@@ -34,8 +34,272 @@ static NSString * const kHostID     = @"io.miniyv.yt6801host";
 static NSString * const kAppPath    = @"/Applications/YT6801Driver.app";
 static NSString * const kLogPath    = @"/tmp/yt6801_installer.log";
 static NSString * const kExtLogPath = @"/tmp/yt6801_activate.log";
+static NSString * const kInstallerID = @"io.miniyv.yt6801.installer";
 
 static NSString * const kBuiltinVersion = @YT_BUILTIN_VERSION;
+
+/* ------------------------------------------------------------------ */
+#pragma mark - UI language
+
+/* Selected on the first screen: 0 = English, 1 = Simplified, 2 = Traditional */
+static NSInteger gLang = 1;
+
+enum {
+    K_WINDOW_TITLE,
+    K_TITLE,
+    K_SUBTITLE,
+    K_CHECKING,
+    K_ST_INSTALLED,
+    K_FMT_VERSION,
+    K_HINT_UP_TO_DATE,
+    K_HINT_DIFF_VERSION,
+    K_BTN_REINSTALL,
+    K_BTN_UNINSTALL,
+    K_ST_TERMINATING,
+    K_ST_INACTIVE,
+    K_HINT_INACTIVE,
+    K_ST_ONDISK,
+    K_FMT_ONDISK,
+    K_HINT_ONDISK,
+    K_ST_NOTINSTALLED,
+    K_FMT_BUNDLED,
+    K_HINT_FRESH,
+    K_BTN_INSTALL,
+    K_BTN_CANCEL,
+    K_BTN_DETAILS,
+    K_BTN_HIDE_DETAILS,
+    K_LOG_DETAIL_OPEN,
+    K_INSTALLING,
+    K_UNINSTALLING,
+    K_DONE_INSTALL,
+    K_DONE_UNINSTALL,
+    K_BTN_DONE,
+    K_HINT_INSTALLED_OK,
+    K_HINT_UNINSTALLED_OK,
+    K_LOG_INSTALLED,
+    K_LOG_UNINSTALLED,
+    K_FAIL_INSTALL,
+    K_FAIL_UNINSTALL,
+    K_OK,
+    K_CONFIRM_UNINSTALL_TITLE,
+    K_CONFIRM_UNINSTALL_INFO,
+    K_LICENSE_TITLE,
+    K_LICENSE_CHECK,
+    K_BTN_AGREE,
+    K_FMT_STATE_LINE,
+    K_MENU_ABOUT,
+    K_MENU_QUIT,
+    K_LAUNCH_FAIL,
+    K_REPLACING_EXT,
+    K_NEED_APPROVAL_SYS,
+    K_AFTER_APPROVAL,
+    K_REBOOT_REQUIRED_LOG,
+    K_COMPLETED_LOG,
+    K_REQ_START,
+    K_UNLOAD,
+    K_LOAD,
+    K_CANNOT_CREATE_REQ,
+    K_REQ_SUBMITTED,
+    K_TIMEOUT_LOG,
+    K_OLD_INSTALLER,
+    K_STAGE_COPY_FAIL,
+    K_HOST_STAGED,
+    K_OLD_HOST_REMOVED,
+    K_OLD_HOST_BACKED_UP,
+    K_HOST_LAND_FAIL,
+    K_HOST_IN_PLACE,
+    K_SIGN_VERIFY_FAIL,
+    K_BUNDLE_ID_MISMATCH,
+    K_UNREADABLE,
+    K_SIGN_BUNDLE_OK,
+    K_REPLACING_HOST,
+    K_ACTIVATOR_MISSING,
+    K_CANNOT_START_ACT,
+    K_REBOOT_NEEDED,
+    K_ACTIVATION_DENIED,
+    K_ACTIVATION_TIMEOUT,
+    K_ACTIVATOR_CRASHED,
+    K_STEP1_CHECK,
+    K_DEXT_MISSING,
+    K_FMT_BUNDLED_VER,
+    K_STEP2_DEPLOY,
+    K_STEP3_VERIFY,
+    K_STEP4_ACTIVATE,
+    K_ACTIVATE_NO_ENTRY,
+    K_FMT_LOADED_VER,
+    K_HOST_HIDDEN,
+    K_HOST_HIDE_FAIL,
+    K_USTEP1,
+    K_NOT_INSTALLED_ERR,
+    K_FMT_CURRENT_VER,
+    K_UNKNOWN,
+    K_USTEP2,
+    K_USTEP3,
+    K_CANNOT_START_UNIN,
+    K_AUTH_TIMEOUT,
+    K_CANCELED,
+    K_UNINSTALL_FAIL_FMT,
+    K_AUTH_DENIED,
+    K_UNINSTALL_INCOMPLETE,
+    K_SYS_CONFIRMED,
+    K_USTEP4,
+    K_FMT_REMOVED,
+};
+
+/* Order of columns must match the enum above. */
+static NSString * kUiStrings[][3] = {
+    [K_WINDOW_TITLE] = { @"YT6801 Installer", @"YT6801 安装器", @"YT6801 安裝器" },
+    [K_TITLE]        = { @"YT6801 Ethernet Driver", @"YT6801 有线网卡驱动", @"YT6801 有線網卡驅動" },
+    [K_SUBTITLE]     = { @"Motorcomm YT6801 Gigabit Ethernet · DriverKit System Extension",
+                         @"Motorcomm YT6801 千兆以太网 · DriverKit 系统扩展",
+                         @"Motorcomm YT6801 Gigabit 乙太網路 · DriverKit 系統擴充功能" },
+    [K_CHECKING]     = { @"Detecting…", @"正在检测…", @"正在偵測…" },
+    [K_ST_INSTALLED] = { @"Installed and active", @"已安装并正在使用", @"已安裝並正在使用" },
+    [K_FMT_VERSION]  = { @"System version %@ · Bundled version %@",
+                         @"系统版本 %@ · 内置版本 %@",
+                         @"系統版本 %@ · 內建版本 %@" },
+    [K_HINT_UP_TO_DATE] = {
+        @"Already up to date. Reinstalling only replaces the files in /Applications; "
+        "the system reloads a driver only when the version number increases.",
+        @"当前已是最新版本。重装只会覆盖 /Applications 里的文件；"
+        @"系统按版本号判断是否重新加载，同版本不会替换正在运行的驱动。",
+        @"目前已是最新版本。重新安裝只會覆蓋 /Applications 裡的檔案；"
+        @"系統會依版本號判斷是否重新載入，同版本不會替換正在執行中的驅動程式。" },
+    [K_HINT_DIFF_VERSION] = {
+        @"The bundled version differs from the installed one. Reinstall replaces the "
+        "running driver automatically — no restart required.",
+        @"安装包里的版本与系统不同，点「重装」会自动替换并让旧版本失效，不需要重启。",
+        @"安裝包內的版本與系統不同，點「重裝」會自動替換並讓舊版本失效，不需要重新開機。" },
+    [K_BTN_REINSTALL] = { @"Reinstall", @"重装", @"重裝" },
+    [K_BTN_UNINSTALL] = { @"Uninstall", @"卸载", @"解除安裝" },
+    [K_ST_TERMINATING] = { @"Old version is exiting…", @"旧版本正在退出…", @"舊版本正在退出…" },
+    [K_ST_INACTIVE]    = { @"Installed but not activated", @"已安装但未激活", @"已安裝但未啟用" },
+    [K_HINT_INACTIVE] = {
+        @"Click Reinstall to submit the activation request again. If it stays stuck, "
+        "uninstall first and install again.",
+        @"点「重装」重新提交激活请求；如果一直卡在这个状态，选「卸载」再装一次。",
+        @"點「重裝」重新送出啟用請求；如果一直卡在這個狀態，選「解除安裝」再裝一次。" },
+    [K_ST_ONDISK] = { @"Files in place, driver not activated",
+                      @"文件已就位，驱动未激活", @"檔案已就位，驅動程式未啟用" },
+    [K_FMT_ONDISK] = { @"%1$@ is in /Applications, but missing from the system list",
+                       @"/Applications 里有 %1$@，但系统列表里没有",
+                       @"/Applications 裡有 %1$@，但系統清單裡沒有" },
+    [K_HINT_ONDISK] = {
+        @"Click Install to activate again. The files are already in place and will not be copied twice.",
+        @"点「安装」重新激活，文件已经在了，不会重复复制。",
+        @"點「安裝」重新啟用，檔案已經在了，不會重複複製。" },
+    [K_ST_NOTINSTALLED] = { @"Not installed", @"未安装", @"未安裝" },
+    [K_FMT_BUNDLED]  = { @"Bundled driver version %@", @"安装包内置版本 %@", @"安裝包內建版本 %@" },
+    [K_HINT_FRESH] = {
+        @"Installing deploys the driver to /Applications/YT6801Driver.app and registers "
+        "the system extension. No restart, no impact on your current network.",
+        @"安装会把驱动部署到 /Applications/YT6801Driver.app 并注册系统扩展。"
+        @"全程不重启，不影响当前网络。",
+        @"安裝會把驅動程式部署到 /Applications/YT6801Driver.app 並註冊系統擴充功能。"
+        @"全程不需重新開機，不會影響目前的網路。" },
+    [K_BTN_INSTALL]  = { @"Install", @"安装", @"安裝" },
+    [K_BTN_CANCEL]   = { @"Cancel", @"取消", @"取消" },
+    [K_BTN_DETAILS]  = { @"Details ▾", @"查看详情 ▾", @"查看詳情 ▾" },
+    [K_BTN_HIDE_DETAILS] = { @"Hide details ▴", @"收起详情 ▴", @"收起詳情 ▴" },
+    [K_LOG_DETAIL_OPEN] = { @"— details expanded —", @"— 详情窗口已展开 —", @"— 詳情視窗已展開 —" },
+    [K_INSTALLING]   = { @"Installing…", @"正在安装…", @"正在安裝…" },
+    [K_UNINSTALLING] = { @"Uninstalling…", @"正在卸载…", @"正在解除安裝…" },
+    [K_DONE_INSTALL]   = { @"Installation complete", @"安装完成", @"安裝完成" },
+    [K_DONE_UNINSTALL] = { @"Uninstalled", @"卸载完成", @"解除安裝完成" },
+    [K_BTN_DONE]     = { @"Done", @"完成", @"完成" },
+    [K_HINT_INSTALLED_OK] = {
+        @"Installation complete. Plug in the cable and it works — no restart needed.",
+        @"安装完成。插上网线即可使用，不需要重启。",
+        @"安裝完成。插上網路線即可使用，不需要重新開機。" },
+    [K_HINT_UNINSTALLED_OK] = {
+        @"Uninstalled. Feel free to keep the installer around for next time.",
+        @"已卸载。安装器可以留着，随时再装。",
+        @"已解除安裝。安裝程式可以留著，隨時再裝。" },
+    [K_LOG_INSTALLED]   = { @"✓ installed", @"✓ 安装完成", @"✓ 安裝完成" },
+    [K_LOG_UNINSTALLED] = { @"✓ uninstalled", @"✓ 卸载完成", @"✓ 解除安裝完成" },
+    [K_FAIL_INSTALL]   = { @"Installation failed", @"安装没有完成", @"安裝未完成" },
+    [K_FAIL_UNINSTALL] = { @"Uninstall failed", @"卸载没有完成", @"解除安裝未完成" },
+    [K_OK]             = { @"OK", @"好", @"好" },
+    [K_CONFIRM_UNINSTALL_TITLE] = {
+        @"Uninstall the YT6801 driver?", @"要卸载 YT6801 驱动吗？", @"要解除安裝 YT6801 驅動程式嗎？" },
+    [K_CONFIRM_UNINSTALL_INFO] = {
+        @"This removes the system extension; your wired network will go down. "
+        "The installer stays and you can reinstall anytime. No restart needed.",
+        @"会从系统里移除这个系统扩展，当前有线网络会断开。"
+        @"安装器本身会保留，随时可以再装回来。不需要重启。",
+        @"會從系統裡移除此系統擴充功能，目前的有線網路會中斷。"
+        @"安裝程式本身會保留，隨時可以再裝回來。不需要重新開機。" },
+    [K_LICENSE_TITLE] = { @"License Agreement", @"用户许可协议", @"使用者授權協議" },
+    [K_LICENSE_CHECK] = {
+        @"I have read and agree to all terms (free of charge · GPL-2.0 open source)",
+        @"我已阅读并同意上述全部条款（完全免费 · GPL-2.0 开源许可证）",
+        @"我已閱讀並同意上述全部條款（完全免費 · GPL-2.0 開源授權）" },
+    [K_BTN_AGREE]    = { @"Agree and Continue", @"同意并继续", @"同意並繼續" },
+    [K_FMT_STATE_LINE] = { @"System version %1$@ · %2$@", @"系统版本 %1$@ · %2$@", @"系統版本 %1$@ · %2$@" },
+    [K_MENU_ABOUT]   = { @"About YT6801 Installer", @"关于 YT6801 安装器", @"關於 YT6801 安裝器" },
+    [K_MENU_QUIT]    = { @"Quit YT6801 Installer", @"退出 YT6801 安装器", @"結束 YT6801 安裝器" },
+    [K_LAUNCH_FAIL] = { @"Launch failed: %@", @"启动失败：%@", @"無法啟動：%@" },
+    [K_REPLACING_EXT] = { @"Existing extension with same ID: old %@ -> new %@, replacing", @"检测到同 ID 扩展：旧 %@ → 新 %@，选择替换", @"偵測到同 ID 擴充功能：舊 %@ → 新 %@，選擇替換" },
+    [K_NEED_APPROVAL_SYS] = { @"NEED_APPROVAL - approve in System Settings > General > Login Items & Extensions", @"NEED_APPROVAL 需要在「系统设置 > 通用 > 登录项与扩展」里批准", @"NEED_APPROVAL 需要在「系統設定 > 一般 > 登入項目與延伸功能」裡核准" },
+    [K_AFTER_APPROVAL] = { @"No restart needed after approval; the program continues automatically.", @"提示：批准后无需重启，本程序会自动继续。", @"提示：核准後無需重新開機，本程式會自動繼續。" },
+    [K_REBOOT_REQUIRED_LOG] = { @"RESULT=WillCompleteAfterReboot (restart required)", @"RESULT=WillCompleteAfterReboot（这一步才需要重启）", @"RESULT=WillCompleteAfterReboot（這一步才需要重新開機）" },
+    [K_COMPLETED_LOG] = { @"RESULT=Completed (no restart) result=%ld", @"RESULT=Completed（无需重启）result=%ld", @"RESULT=Completed（無需重新開機）result=%ld" },
+    [K_REQ_START] = { @"==== %@ request started (pid %d) ====", @"==== %@ 请求启动（pid %d）====", @"==== %@ 請求啟動（pid %d）====" },
+    [K_UNLOAD] = { @"Uninstall", @"卸载", @"解除安裝" },
+    [K_LOAD] = { @"Activate", @"激活", @"啟用" },
+    [K_CANNOT_CREATE_REQ] = { @"Cannot create request", @"无法构造请求", @"無法建構請求" },
+    [K_REQ_SUBMITTED] = { @"Request submitted, waiting for sysextd callback…", @"请求已提交，等待 sysextd 回调…", @"請求已送出，等待 sysextd 回呼…" },
+    [K_TIMEOUT_LOG] = { @"TIMEOUT - no callback within 120 s", @"TIMEOUT 120 秒无回调", @"TIMEOUT 120 秒無回呼" },
+    [K_OLD_INSTALLER] = { @"This installer is outdated (no host template). Please re-run from a new DMG.", @"这个安装器是旧版本（没有宿主模板）。请用新的 DMG 重新运行安装。", @"此安裝程式為舊版本（沒有宿主範本）。請用新的 DMG 重新執行安裝。" },
+    [K_STAGE_COPY_FAIL] = { @"Failed to stage host copy (rc=%d): %@", @"复制宿主到暂存目录失败（rc=%d）：%@", @"複製宿主到暫存目錄失敗（rc=%d）：%@" },
+    [K_HOST_STAGED] = { @"Host staged", @"宿主已复制到暂存目录", @"宿主程式已複製到暫存目錄" },
+    [K_OLD_HOST_REMOVED] = { @"Old host could not be moved; removing it instead", @"旧宿主无法移动，改为直接移除", @"舊宿主無法移動，改為直接移除" },
+    [K_OLD_HOST_BACKED_UP] = { @"Old host moved aside", @"旧宿主已移到备份位", @"舊宿主已移至備份位置" },
+    [K_HOST_LAND_FAIL] = { @"Failed to place new host (/Applications not writable)", @"新宿主落位失败（/Applications 不可写）", @"新宿主放置失敗（/Applications 不可寫入）" },
+    [K_HOST_IN_PLACE] = { @"Host deployed to /Applications/YT6801Driver.app", @"宿主已落位 /Applications/YT6801Driver.app", @"宿主程式已就位 /Applications/YT6801Driver.app" },
+    [K_SIGN_VERIFY_FAIL] = { @"Signature check failed: %@", @"签名校验未通过：%@", @"簽章驗證未通過：%@" },
+    [K_BUNDLE_ID_MISMATCH] = { @"dext bundle ID mismatch: %@", @"dext bundle id 不符：%@", @"dext bundle ID 不符：%@" },
+    [K_UNREADABLE] = { @"(unreadable)", @"(读不到)", @"（無法讀取）" },
+    [K_SIGN_BUNDLE_OK] = { @"Signature and bundle checks passed", @"签名与 bundle 校验通过", @"簽章與 bundle 驗證通過" },
+    [K_REPLACING_HOST] = { @"Old host detected, replacing with the new one", @"检测到旧版宿主，正在替换为新版", @"偵測到舊版宿主，正在替換為新版" },
+    [K_ACTIVATOR_MISSING] = { @"Installed activator not found (host version mismatch - click Reinstall)", @"找不到已安装的激活程序（宿主版本不匹配，请点「重装」）", @"找不到已安裝的啟用程式（宿主版本不符，請點「重裝」）" },
+    [K_CANNOT_START_ACT] = { @"Cannot start activator: %@", @"无法启动激活程序：%@", @"無法啟動啟用程式：%@" },
+    [K_REBOOT_NEEDED] = { @"Restart required (usually an old instance that has not exited)", @"需要重启才能生效（通常代表已有旧实例未退出）", @"需要重新開機才會生效（通常代表已有舊實例未退出）" },
+    [K_ACTIVATION_DENIED] = { @"Activation rejected by sysextd", @"激活被 sysextd 拒绝", @"啟用被 sysextd 拒絕" },
+    [K_ACTIVATION_TIMEOUT] = { @"Activation timed out (no result in 60 s)", @"激活超时（60 秒无结果）", @"啟用逾時（60 秒無結果）" },
+    [K_ACTIVATOR_CRASHED] = { @"Activator exited abnormally", @"激活程序异常退出", @"啟用程式異常結束" },
+    [K_STEP1_CHECK] = { @"1. Checking bundled driver files", @"① 检查内置驱动文件", @"① 檢查內建驅動程式檔案" },
+    [K_DEXT_MISSING] = { @"Driver file missing from the package - please re-download", @"安装包内缺少驱动文件，请重新下载", @"安裝包內缺少驅動程式檔案，請重新下載" },
+    [K_FMT_BUNDLED_VER] = { @"Bundled version %@", @"内置版本 %@", @"內建版本 %@" },
+    [K_STEP2_DEPLOY] = { @"2. Deploying to /Applications", @"② 部署到 /Applications", @"② 部署到 /Applications" },
+    [K_STEP3_VERIFY] = { @"3. Signature and integrity checks", @"③ 签名与完整性校验", @"③ 簽章與完整性驗證" },
+    [K_STEP4_ACTIVATE] = { @"4. Submitting system extension activation", @"④ 提交系统扩展激活请求", @"④ 送出系統擴充功能啟用請求" },
+    [K_ACTIVATE_NO_ENTRY] = { @"Activation returned success, but the extension is not in the system list", @"激活返回成功，但扩展列表里仍没有它", @"啟用回報成功，但擴充功能清單裡仍沒有它" },
+    [K_FMT_LOADED_VER] = { @"System loaded version %@", @"系统已加载版本 %@", @"系統已載入版本 %@" },
+    [K_HOST_HIDDEN] = { @"Host app icon hidden from Launchpad", @"已隐藏 /Applications 里的驱动宿主图标", @"已隱藏 /Applications 裡的驅動宿主圖示" },
+    [K_HOST_HIDE_FAIL] = { @"Could not hide host app icon (harmless)", @"宿主图标隐藏失败（不影响使用）", @"宿主圖示隱藏失敗（不影響使用）" },
+    [K_USTEP1] = { @"1. Checking current install state", @"① 检查当前安装状态", @"① 檢查目前安裝狀態" },
+    [K_NOT_INSTALLED_ERR] = { @"No installed driver found", @"系统里没有已安装的驱动", @"系統裡沒有已安裝的驅動程式" },
+    [K_FMT_CURRENT_VER] = { @"Current version %1$@ (%2$@)", @"当前版本 %1$@（%2$@）", @"目前版本 %1$@（%2$@）" },
+    [K_UNKNOWN] = { @"unknown", @"未知", @"未知" },
+    [K_USTEP2] = { @"2. Deploying host to /Applications (sysextd requirement)", @"② 部署宿主到 /Applications（sysextd 硬性要求）", @"② 部署宿主到 /Applications（sysextd 硬性要求）" },
+    [K_USTEP3] = { @"3. Submitting uninstall request (admin password required)", @"③ 提交系统卸载请求（需要管理员密码）", @"③ 送出系統解除安裝請求（需要管理者密碼）" },
+    [K_CANNOT_START_UNIN] = { @"Cannot start uninstaller: %@", @"无法启动卸载程序：%@", @"無法啟動解除安裝程式：%@" },
+    [K_AUTH_TIMEOUT] = { @"Timed out waiting for admin authorization. Enter the password promptly when prompted.", @"等待管理员授权超时：请在密码框出现后尽快输入。", @"等待管理者授權逾時：請在密碼框出現後盡快輸入。" },
+    [K_CANCELED] = { @"Uninstall cancelled.", @"已取消卸载。", @"已取消解除安裝。" },
+    [K_UNINSTALL_FAIL_FMT] = { @"Uninstall failed: %@", @"卸载失败：%@", @"解除安裝失敗：%@" },
+    [K_AUTH_DENIED] = { @"Admin authorization was not granted", @"管理员授权未通过", @"管理者授權未通過" },
+    [K_UNINSTALL_INCOMPLETE] = { @"Uninstall incomplete: the extension is still in the system list. Existing driver files were kept.", @"卸载未完成：系统列表里仍有该扩展，已保留现有驱动文件。", @"解除安裝未完成：系統清單裡仍有該擴充功能，已保留現有驅動程式檔案。" },
+    [K_SYS_CONFIRMED] = { @"Uninstall confirmed by the system", @"系统已确认卸载", @"系統已確認解除安裝" },
+    [K_USTEP4] = { @"4. Cleaning up", @"④ 清理安装目录", @"④ 清理安裝目錄" },
+    [K_FMT_REMOVED] = { @"Removed %@", @"已移除 %@", @"已移除 %@" },
+};
+
+static NSString *
+S(NSInteger k)
+{
+    return kUiStrings[k][gLang];
+}
 
 /* ------------------------------------------------------------------ */
 #pragma mark - Logging
@@ -94,7 +358,7 @@ runCmd(NSString * path, NSArray<NSString *> * args, NSString ** out)
     @try {
         [t launch];
     } @catch (NSException * e) {
-        if (out) *out = [NSString stringWithFormat:@"启动失败：%@", e.reason];
+        if (out) *out = [NSString stringWithFormat:S(K_LAUNCH_FAIL), e.reason];
         return -1;
     }
 
@@ -243,25 +507,25 @@ targetInstalledOnDisk(void)
                  actionForReplacingExtension:(OSSystemExtensionInfo *)existing
                                withExtension:(OSSystemExtensionInfo *)ext
 {
-    ILog(@"检测到同 ID 扩展：旧 %@ → 新 %@，选择替换",
+    ILog(S(K_REPLACING_EXT),
          existing.bundleShortVersion ?: @"?", ext.bundleShortVersion ?: @"?");
     return OSSystemExtensionReplacementActionReplace;
 }
 
 - (void)requestNeedsUserApproval:(OSSystemExtensionRequest *)request
 {
-    ILog(@"NEED_APPROVAL 需要用户在「系统设置 > 通用 > 登录项与扩展」里批准");
-    ILog(@"提示：批准后无需重启，本程序会自动继续。");
+    ILog(S(K_NEED_APPROVAL_SYS));
+    ILog(S(K_AFTER_APPROVAL));
 }
 
 - (void)request:(OSSystemExtensionRequest *)request
         didFinishWithResult:(OSSystemExtensionRequestResult)result
 {
     if (result == OSSystemExtensionRequestWillCompleteAfterReboot) {
-        ILog(@"RESULT=WillCompleteAfterReboot（这一步才需要重启）");
+        ILog(S(K_REBOOT_REQUIRED_LOG));
         exit(4);
     }
-    ILog(@"RESULT=Completed（无需重启）result=%ld", (long)result);
+    ILog(S(K_COMPLETED_LOG), (long)result);
     exit(0);
 }
 
@@ -285,8 +549,8 @@ runExtensionRequest(BOOL deactivate, NSString * logPath)
         setvbuf(gLogFile, NULL, _IOLBF, 0);
     }
 
-    ILog(@"==== %@ 请求启动（pid %d）====",
-         deactivate ? @"卸载" : @"激活", (int)getpid());
+    ILog(S(K_REQ_START),
+         deactivate ? S(K_UNLOAD) : S(K_LOAD), (int)getpid());
 
     ExtRequestRunner * runner = [ExtRequestRunner new];
     runner.deactivating = deactivate;
@@ -298,16 +562,16 @@ runExtensionRequest(BOOL deactivate, NSString * logPath)
           : [OSSystemExtensionRequest activationRequestForExtension:kExtID
                                                               queue:dispatch_get_main_queue()];
     if (req == nil) {
-        ILog(@"无法构造请求");
+        ILog(S(K_CANNOT_CREATE_REQ));
         return 2;
     }
     req.delegate = runner;
     [[OSSystemExtensionManager sharedManager] submitRequest:req];
-    ILog(@"请求已提交，等待 sysextd 回调…");
+    ILog(S(K_REQ_SUBMITTED));
 
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 120ull * NSEC_PER_SEC),
                    dispatch_get_main_queue(), ^{
-        ILog(@"TIMEOUT 120 秒无回调");
+        ILog(S(K_TIMEOUT_LOG));
         exit(3);
     });
 
@@ -358,7 +622,7 @@ deployHostFromTemplate(void)
     NSString * tmpl = hostTemplatePath();
     if (![[NSFileManager defaultManager] fileExistsAtPath:tmpl]) {
         /* Older installers used themselves as the host; no template here */
-        return @"这个安装器是旧版本（没有宿主模板）。请用新的 DMG 重新运行安装。";
+        return S(K_OLD_INSTALLER);
     }
 
     NSFileManager * fm = [NSFileManager defaultManager];
@@ -374,9 +638,9 @@ deployHostFromTemplate(void)
     int rc = runCmd(@"/usr/bin/ditto",
                     @[ @"--rsrc", @"--extattr", @"--noqtn", tmpl, staging ], &out);
     if (rc != 0) {
-        return [NSString stringWithFormat:@"复制宿主到暂存目录失败（rc=%d）：%@", rc, out ?: @""];
+        return [NSString stringWithFormat:S(K_STAGE_COPY_FAIL), rc, out ?: @""];
     }
-    appendDetail(@"宿主已复制到暂存目录");
+    appendDetail(S(K_HOST_STAGED));
 
     /* Move the old host aside instead of deleting it, so a failed install
      * can be restored in place. If mv fails (permissions/cross-volume), fall
@@ -384,10 +648,10 @@ deployHostFromTemplate(void)
      * running driver copy lives in /Library/SystemExtensions and is unaffected. */
     if ([fm fileExistsAtPath:kAppPath]) {
         if (runCmd(@"/bin/mv", @[ kAppPath, backup ], NULL) != 0) {
-            appendDetail(@"旧宿主无法移动，改为直接移除");
+            appendDetail(S(K_OLD_HOST_REMOVED));
             runCmd(@"/bin/rm", @[ @"-rf", kAppPath ], NULL);
         } else {
-            appendDetail(@"旧宿主已移到备份位");
+            appendDetail(S(K_OLD_HOST_BACKED_UP));
         }
     }
 
@@ -396,9 +660,9 @@ deployHostFromTemplate(void)
         if ([fm fileExistsAtPath:backup]) {
             runCmd(@"/bin/mv", @[ backup, kAppPath ], NULL);
         }
-        return @"新宿主落位失败（/Applications 不可写）";
+        return S(K_HOST_LAND_FAIL);
     }
-    appendDetail(@"宿主已落位 /Applications/YT6801Driver.app");
+    appendDetail(S(K_HOST_IN_PLACE));
 
     /* The backup is pointless after a successful install; clean it up */
     runCmd(@"/bin/rm", @[ @"-rf", backup ], NULL);
@@ -417,7 +681,7 @@ verifyBundle(void)
     int rc = runCmd(@"/usr/bin/codesign",
                     @[ @"--verify", @"--deep", @"--strict", kAppPath ], &out);
     if (rc != 0) {
-        return [NSString stringWithFormat:@"签名校验未通过：%@", out ?: @""];
+        return [NSString stringWithFormat:S(K_SIGN_VERIFY_FAIL), out ?: @""];
     }
 
     NSString * plist = [kAppPath stringByAppendingPathComponent:
@@ -426,9 +690,9 @@ verifyBundle(void)
     runCmd(@"/usr/libexec/PlistBuddy", @[ @"-c", @"Print :CFBundleIdentifier", plist ], &out);
     if (![[out stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]]
             isEqualToString:kExtID]) {
-        return [NSString stringWithFormat:@"dext bundle id 不符：%@", out ?: @"(读不到)"];
+        return [NSString stringWithFormat:S(K_BUNDLE_ID_MISMATCH), out ?: S(K_UNREADABLE)];
     }
-    appendDetail(@"签名与 bundle 校验通过");
+    appendDetail(S(K_SIGN_BUNDLE_OK));
     return nil;
 }
 
@@ -444,23 +708,23 @@ activateInstalled(NSString * logPath, double * progress, void (^tick)(double))
          * But an old host may sit in /Applications (created by the legacy
          * install.sh, binary named yt6801_activate); instead of a confusing
          * mismatch error, redeploy the host and retry. */
-        appendDetail(@"检测到旧版宿主，正在替换为新版");
+        appendDetail(S(K_REPLACING_HOST));
         NSString * redeploy = deployHostFromTemplate();
         if (redeploy) {
             return redeploy;
         }
     }
     if (![[NSFileManager defaultManager] fileExistsAtPath:bin]) {
-        return @"找不到已安装的激活程序（宿主版本不匹配，请点「重装」）";
+        return S(K_ACTIVATOR_MISSING);
     }
 
     NSTask * t = [[NSTask alloc] init];
     t.launchPath = bin;
-    t.arguments  = @[ @"--activate", logPath ];
+    t.arguments  = @[ @"--activate", logPath, [NSString stringWithFormat:@"%ld", (long)gLang] ];
     @try {
         [t launch];
     } @catch (NSException * e) {
-        return [NSString stringWithFormat:@"无法启动激活程序：%@", e.reason];
+        return [NSString stringWithFormat:S(K_CANNOT_START_ACT), e.reason];
     }
 
     /* Wait up to 60 seconds; read the log to track progress */
@@ -485,14 +749,14 @@ activateInstalled(NSString * logPath, double * progress, void (^tick)(double))
                 [log containsString:@"RESULT=WillCompleteAfterReboot"]) {
                 [t waitUntilExit];
                 if ([log containsString:@"RESULT=WillCompleteAfterReboot"]) {
-                    return @"需要重启才能生效（通常代表已有旧实例未退出）";
+                    return S(K_REBOOT_NEEDED);
                 }
                 *progress = 0.92;
                 if (tick) tick(*progress);
                 return nil;
             }
             if ([log containsString:@"FAIL "]) {
-                NSString * msg = @"激活被 sysextd 拒绝";
+                NSString * msg = S(K_ACTIVATION_DENIED);
                 for (NSString * l in lines) {
                     if ([l containsString:@"FAIL "]) { msg = l; break; }
                 }
@@ -511,9 +775,9 @@ activateInstalled(NSString * logPath, double * progress, void (^tick)(double))
 
     if ([t isRunning]) {
         [t terminate];
-        return @"激活超时（60 秒无结果）";
+        return S(K_ACTIVATION_TIMEOUT);
     }
-    return @"激活程序异常退出";
+    return S(K_ACTIVATOR_CRASHED);
 }
 
 /* ------------------------------------------------------------------ */
@@ -523,7 +787,7 @@ static NSString *
 performInstall(double * progress, void (^tick)(double))
 {
     if (tick) tick(0.05);
-    appendDetail(@"① 检查内置驱动文件");
+    appendDetail(S(K_STEP1_CHECK));
 
     /* The driver currently lives in the "host template":
      * <template>/Contents/Library/SystemExtensions/. Keep the legacy
@@ -538,26 +802,26 @@ performInstall(double * progress, void (^tick)(double))
 
     if (![[NSFileManager defaultManager] fileExistsAtPath:builtinDext] &&
         ![[NSFileManager defaultManager] fileExistsAtPath:altDext]) {
-        return @"安装包内缺少驱动文件，请重新下载";
+        return S(K_DEXT_MISSING);
     }
-    appendDetail([NSString stringWithFormat:@"内置版本 %@", builtinVersion()]);
+    appendDetail([NSString stringWithFormat:S(K_FMT_BUNDLED_VER), builtinVersion()]);
 
     if (tick) tick(0.15);
-    appendDetail(@"② 部署到 /Applications");
+    appendDetail(S(K_STEP2_DEPLOY));
     NSString * err = deployHostFromTemplate();
     if (err) {
         return err;
     }
 
     if (tick) tick(0.35);
-    appendDetail(@"③ 签名与完整性校验");
+    appendDetail(S(K_STEP3_VERIFY));
     err = verifyBundle();
     if (err) {
         return err;
     }
 
     if (tick) tick(0.50);
-    appendDetail(@"④ 提交系统扩展激活请求");
+    appendDetail(S(K_STEP4_ACTIVATE));
     err = activateInstalled(kExtLogPath, progress, tick);
     if (err) {
         return err;
@@ -566,9 +830,9 @@ performInstall(double * progress, void (^tick)(double))
     if (tick) tick(0.96);
     ExtState st = queryState();
     if (!st.installed) {
-        return @"激活返回成功，但扩展列表里仍没有它";
+        return S(K_ACTIVATE_NO_ENTRY);
     }
-    appendDetail([NSString stringWithFormat:@"系统已加载版本 %@", st.version]);
+    appendDetail([NSString stringWithFormat:S(K_FMT_LOADED_VER), st.version]);
 
     /* Hide the host from Finder/Launchpad after install.
      * The host app is a hard sysextd requirement (must be in /Applications),
@@ -583,9 +847,9 @@ performInstall(double * progress, void (^tick)(double))
         @try {
             [h launch];
             [h waitUntilExit];
-            appendDetail(@"已隐藏 /Applications 里的驱动宿主图标");
+            appendDetail(S(K_HOST_HIDDEN));
         } @catch (NSException * e) {
-            appendDetail(@"宿主图标隐藏失败（不影响使用）");
+            appendDetail(S(K_HOST_HIDE_FAIL));
         }
     }
 
@@ -599,17 +863,17 @@ performUninstall(double * progress, void (^tick)(double))
     NSString * err = nil;
 
     if (tick) tick(0.10);
-    appendDetail(@"① 检查当前安装状态");
+    appendDetail(S(K_USTEP1));
 
     ExtState st = queryState();
     if (!st.installed && !targetInstalledOnDisk()) {
-        return @"系统里没有已安装的驱动";
+        return S(K_NOT_INSTALLED_ERR);
     }
-    appendDetail([NSString stringWithFormat:@"当前版本 %@（%@）",
-                  st.version.length ? st.version : @"未知", st.stateText]);
+    appendDetail([NSString stringWithFormat:S(K_FMT_CURRENT_VER),
+                  st.version.length ? st.version : S(K_UNKNOWN), st.stateText]);
 
     if (tick) tick(0.25);
-    appendDetail(@"② 部署宿主到 /Applications（sysextd 硬性要求）");
+    appendDetail(S(K_USTEP2));
     /* sysextd checks the requesting app's location for both activation and
      * deactivation: "App containing System Extension to be activated must be
      * in /Applications folder". So even an uninstall must be initiated from
@@ -620,67 +884,58 @@ performUninstall(double * progress, void (^tick)(double))
     }
 
     if (tick) tick(0.32);
-    appendDetail(@"③ 向 sysextd 提交卸载请求");
+    appendDetail(S(K_USTEP3));
 
-    [@"" writeToFile:kExtLogPath atomically:YES encoding:NSUTF8StringEncoding error:NULL];
-    NSString * bin = [kAppPath stringByAppendingPathComponent:@"Contents/MacOS/yt6801host"];
-    if (![[NSFileManager defaultManager] fileExistsAtPath:bin]) {
-        /* deployHostFromTemplate above already succeeded; still missing means
-         * the template inside the installer package is incomplete */
-        return @"宿主程序缺失（安装包不完整），请重新下载安装器";
-    }
-
+    /* OSSystemExtensionManager deactivation requests fail with UserRejected
+     * (code=4) within seconds when submitted from a background (LSUIElement)
+     * host, because the approval dialog has no UI context. The reliable path
+     * is systemextensionsctl uninstall with admin privileges, which raises
+     * the standard password prompt. Success is confirmed by re-reading the
+     * system extension list, never by the child's exit status alone. */
+    NSPipe * outPipe = [NSPipe pipe];
     NSTask * t = [[NSTask alloc] init];
-    t.launchPath = bin;
-    t.arguments  = @[ @"--deactivate", kExtLogPath ];
+    t.launchPath = @"/usr/bin/osascript";
+    t.arguments  = @[@"-e", [NSString stringWithFormat:
+        @"do shell script \"/usr/bin/systemextensionsctl uninstall - %@\" with administrator privileges",
+        kExtID]];
+    t.standardOutput = outPipe;
+    t.standardError  = [NSPipe pipe];
     @try {
         [t launch];
     } @catch (NSException * e) {
-        return [NSString stringWithFormat:@"无法启动卸载程序：%@", e.reason];
+        return [NSString stringWithFormat:S(K_CANNOT_START_UNIN), e.reason];
     }
 
-    BOOL completed = NO;
-    for (int i = 0; i < 300; i++) {
+    /* Wait up to 5 minutes: the user may take time typing the password. */
+    for (int i = 0; i < 3000 && [t isRunning]; i++) {
         usleep(100 * 1000);
-        NSString * log = [NSString stringWithContentsOfFile:kExtLogPath
-                                                   encoding:NSUTF8StringEncoding
-                                                      error:NULL];
-        if (log.length) {
-            if ([log containsString:@"RESULT=Completed"]) {
-                completed = YES;
-                [t waitUntilExit];
-                break;
-            }
-            if ([log containsString:@"FAIL "]) {
-                [t waitUntilExit];
-                return @"系统拒绝了卸载：需要你在授权弹窗里点「允许」。";
-            }
-        }
-        if (![t isRunning]) {
-            break;
-        }
     }
     if ([t isRunning]) {
         [t terminate];
-        return @"等待系统授权超时：卸载需要你在弹窗中点「允许」。\n"
-                "如果没有弹窗出现，请改用「重装」，或手动在"
-                @"「系统设置 > 通用 > 登录项与扩展」里移除。";
+        return S(K_AUTH_TIMEOUT);
+    }
+    [t waitUntilExit];
+
+    if (t.terminationStatus != 0) {
+        NSData * e = [[t.standardError fileHandleForReading] readDataToEndOfFile];
+        NSString * msg = [[NSString alloc] initWithData:e encoding:NSUTF8StringEncoding] ?: @"";
+        /* osascript reports cancellation in the user's system language */
+        if ([msg containsString:@"canceled"] || [msg containsString:@"取消"] ||
+            [msg containsString:@"已取消"]) {
+            return S(K_CANCELED);
+        }
+        return [NSString stringWithFormat:S(K_UNINSTALL_FAIL_FMT), msg ?: S(K_AUTH_DENIED)];
     }
 
-    /* Child process exit != uninstall success. Without an explicit Completed
-     * in the log, treat it as failure and never touch the dext inside the
-     * host — otherwise a still-active driver file could be half-deleted. */
-    if (!completed) {
-        NSString * log = [NSString stringWithContentsOfFile:kExtLogPath
-                                                   encoding:NSUTF8StringEncoding
-                                                      error:NULL];
-        if (![log containsString:@"RESULT=Completed"]) {
-            return @"卸载未完成：系统没有确认卸载成功，已保留现有驱动文件。";
-        }
+    /* Double-check with the system before touching any files */
+    ExtState after = queryState();
+    if (after.installed) {
+        return S(K_UNINSTALL_INCOMPLETE);
     }
+    appendDetail(S(K_SYS_CONFIRMED));
 
     if (tick) tick(0.75);
-    appendDetail(@"④ 清理安装目录");
+    appendDetail(S(K_USTEP4));
 
     /* Remove the dext from the host, keep the host itself (installer needs it) */
     NSString * seDir = [kAppPath stringByAppendingPathComponent:@"Contents/Library/SystemExtensions"];
@@ -688,7 +943,7 @@ performUninstall(double * progress, void (^tick)(double))
     for (NSString * name in [fm contentsOfDirectoryAtPath:seDir error:NULL]) {
         if ([name hasSuffix:@".dext"]) {
             [fm removeItemAtPath:[seDir stringByAppendingPathComponent:name] error:NULL];
-            appendDetail([NSString stringWithFormat:@"已移除 %@", name]);
+            appendDetail([NSString stringWithFormat:S(K_FMT_REMOVED), name]);
         }
     }
 
@@ -744,159 +999,6 @@ cliUninstall(void)
     return 0;
 }
 
-
-/* ------------------------------------------------------------------ */
-#pragma mark - UI language
-
-/* Selected on the first screen: 0 = English, 1 = Simplified, 2 = Traditional */
-static NSInteger gLang = 1;
-
-enum {
-    K_WINDOW_TITLE,
-    K_TITLE,
-    K_SUBTITLE,
-    K_CHECKING,
-    K_ST_INSTALLED,
-    K_FMT_VERSION,
-    K_HINT_UP_TO_DATE,
-    K_HINT_DIFF_VERSION,
-    K_BTN_REINSTALL,
-    K_BTN_UNINSTALL,
-    K_ST_TERMINATING,
-    K_ST_INACTIVE,
-    K_HINT_INACTIVE,
-    K_ST_ONDISK,
-    K_FMT_ONDISK,
-    K_HINT_ONDISK,
-    K_ST_NOTINSTALLED,
-    K_FMT_BUNDLED,
-    K_HINT_FRESH,
-    K_BTN_INSTALL,
-    K_BTN_CANCEL,
-    K_BTN_DETAILS,
-    K_BTN_HIDE_DETAILS,
-    K_LOG_DETAIL_OPEN,
-    K_INSTALLING,
-    K_UNINSTALLING,
-    K_DONE_INSTALL,
-    K_DONE_UNINSTALL,
-    K_BTN_DONE,
-    K_HINT_INSTALLED_OK,
-    K_HINT_UNINSTALLED_OK,
-    K_LOG_INSTALLED,
-    K_LOG_UNINSTALLED,
-    K_FAIL_INSTALL,
-    K_FAIL_UNINSTALL,
-    K_OK,
-    K_CONFIRM_UNINSTALL_TITLE,
-    K_CONFIRM_UNINSTALL_INFO,
-    K_LICENSE_TITLE,
-    K_LICENSE_CHECK,
-    K_BTN_AGREE,
-    K_FMT_STATE_LINE,
-    K_MENU_ABOUT,
-    K_MENU_QUIT,
-};
-
-/* Order of columns must match the enum above. */
-static NSString * kUiStrings[][3] = {
-    [K_WINDOW_TITLE] = { @"YT6801 Installer", @"YT6801 安装器", @"YT6801 安裝器" },
-    [K_TITLE]        = { @"YT6801 Ethernet Driver", @"YT6801 有线网卡驱动", @"YT6801 有線網卡驅動" },
-    [K_SUBTITLE]     = { @"Motorcomm YT6801 Gigabit Ethernet · DriverKit System Extension",
-                         @"Motorcomm YT6801 千兆以太网 · DriverKit 系统扩展",
-                         @"Motorcomm YT6801 Gigabit 乙太網路 · DriverKit 系統擴充功能" },
-    [K_CHECKING]     = { @"Detecting…", @"正在检测…", @"正在偵測…" },
-    [K_ST_INSTALLED] = { @"Installed and active", @"已安装并正在使用", @"已安裝並正在使用" },
-    [K_FMT_VERSION]  = { @"System version %@ · Bundled version %@",
-                         @"系统版本 %@ · 内置版本 %@",
-                         @"系統版本 %@ · 內建版本 %@" },
-    [K_HINT_UP_TO_DATE] = {
-        @"Already up to date. Reinstalling only replaces the files in /Applications; "
-        "the system reloads a driver only when the version number increases.",
-        @"当前已是最新版本。重装只会覆盖 /Applications 里的文件；"
-        @"系统按版本号判断是否重新加载，同版本不会替换正在运行的驱动。",
-        @"目前已是最新版本。重新安裝只會覆蓋 /Applications 裡的檔案；"
-        @"系統會依版本號判斷是否重新載入，同版本不會替換正在執行中的驅動程式。" },
-    [K_HINT_DIFF_VERSION] = {
-        @"The bundled version differs from the installed one. Reinstall replaces the "
-        "running driver automatically — no restart required.",
-        @"安装包里的版本与系统不同，点「重装」会自动替换并让旧版本失效，不需要重启。",
-        @"安裝包內的版本與系統不同，點「重裝」會自動替換並讓舊版本失效，不需要重新開機。" },
-    [K_BTN_REINSTALL] = { @"Reinstall", @"重装", @"重裝" },
-    [K_BTN_UNINSTALL] = { @"Uninstall", @"卸载", @"解除安裝" },
-    [K_ST_TERMINATING] = { @"Old version is exiting…", @"旧版本正在退出…", @"舊版本正在退出…" },
-    [K_ST_INACTIVE]    = { @"Installed but not activated", @"已安装但未激活", @"已安裝但未啟用" },
-    [K_HINT_INACTIVE] = {
-        @"Click Reinstall to submit the activation request again. If it stays stuck, "
-        "uninstall first and install again.",
-        @"点「重装」重新提交激活请求；如果一直卡在这个状态，选「卸载」再装一次。",
-        @"點「重裝」重新送出啟用請求；如果一直卡在這個狀態，選「解除安裝」再裝一次。" },
-    [K_ST_ONDISK] = { @"Files in place, driver not activated",
-                      @"文件已就位，驱动未激活", @"檔案已就位，驅動程式未啟用" },
-    [K_FMT_ONDISK] = { @"%1$@ is in /Applications, but missing from the system list",
-                       @"/Applications 里有 %1$@，但系统列表里没有",
-                       @"/Applications 裡有 %1$@，但系統清單裡沒有" },
-    [K_HINT_ONDISK] = {
-        @"Click Install to activate again. The files are already in place and will not be copied twice.",
-        @"点「安装」重新激活，文件已经在了，不会重复复制。",
-        @"點「安裝」重新啟用，檔案已經在了，不會重複複製。" },
-    [K_ST_NOTINSTALLED] = { @"Not installed", @"未安装", @"未安裝" },
-    [K_FMT_BUNDLED]  = { @"Bundled driver version %@", @"安装包内置版本 %@", @"安裝包內建版本 %@" },
-    [K_HINT_FRESH] = {
-        @"Installing deploys the driver to /Applications/YT6801Driver.app and registers "
-        "the system extension. No restart, no impact on your current network.",
-        @"安装会把驱动部署到 /Applications/YT6801Driver.app 并注册系统扩展。"
-        @"全程不重启，不影响当前网络。",
-        @"安裝會把驅動程式部署到 /Applications/YT6801Driver.app 並註冊系統擴充功能。"
-        @"全程不需重新開機，不會影響目前的網路。" },
-    [K_BTN_INSTALL]  = { @"Install", @"安装", @"安裝" },
-    [K_BTN_CANCEL]   = { @"Cancel", @"取消", @"取消" },
-    [K_BTN_DETAILS]  = { @"Details ▾", @"查看详情 ▾", @"查看詳情 ▾" },
-    [K_BTN_HIDE_DETAILS] = { @"Hide details ▴", @"收起详情 ▴", @"收起詳情 ▴" },
-    [K_LOG_DETAIL_OPEN] = { @"— details expanded —", @"— 详情窗口已展开 —", @"— 詳情視窗已展開 —" },
-    [K_INSTALLING]   = { @"Installing…", @"正在安装…", @"正在安裝…" },
-    [K_UNINSTALLING] = { @"Uninstalling…", @"正在卸载…", @"正在解除安裝…" },
-    [K_DONE_INSTALL]   = { @"Installation complete", @"安装完成", @"安裝完成" },
-    [K_DONE_UNINSTALL] = { @"Uninstalled", @"卸载完成", @"解除安裝完成" },
-    [K_BTN_DONE]     = { @"Done", @"完成", @"完成" },
-    [K_HINT_INSTALLED_OK] = {
-        @"Installation complete. Plug in the cable and it works — no restart needed.",
-        @"安装完成。插上网线即可使用，不需要重启。",
-        @"安裝完成。插上網路線即可使用，不需要重新開機。" },
-    [K_HINT_UNINSTALLED_OK] = {
-        @"Uninstalled. Feel free to keep the installer around for next time.",
-        @"已卸载。安装器可以留着，随时再装。",
-        @"已解除安裝。安裝程式可以留著，隨時再裝。" },
-    [K_LOG_INSTALLED]   = { @"✓ installed", @"✓ 安装完成", @"✓ 安裝完成" },
-    [K_LOG_UNINSTALLED] = { @"✓ uninstalled", @"✓ 卸载完成", @"✓ 解除安裝完成" },
-    [K_FAIL_INSTALL]   = { @"Installation failed", @"安装没有完成", @"安裝未完成" },
-    [K_FAIL_UNINSTALL] = { @"Uninstall failed", @"卸载没有完成", @"解除安裝未完成" },
-    [K_OK]             = { @"OK", @"好", @"好" },
-    [K_CONFIRM_UNINSTALL_TITLE] = {
-        @"Uninstall the YT6801 driver?", @"要卸载 YT6801 驱动吗？", @"要解除安裝 YT6801 驅動程式嗎？" },
-    [K_CONFIRM_UNINSTALL_INFO] = {
-        @"This removes the system extension; your wired network will go down. "
-        "The installer stays and you can reinstall anytime. No restart needed.",
-        @"会从系统里移除这个系统扩展，当前有线网络会断开。"
-        @"安装器本身会保留，随时可以再装回来。不需要重启。",
-        @"會從系統裡移除此系統擴充功能，目前的有線網路會中斷。"
-        @"安裝程式本身會保留，隨時可以再裝回來。不需要重新開機。" },
-    [K_LICENSE_TITLE] = { @"License Agreement", @"用户许可协议", @"使用者授權協議" },
-    [K_LICENSE_CHECK] = {
-        @"I have read and agree to all terms (free of charge · GPL-2.0 open source)",
-        @"我已阅读并同意上述全部条款（完全免费 · GPL-2.0 开源许可证）",
-        @"我已閱讀並同意上述全部條款（完全免費 · GPL-2.0 開源授權）" },
-    [K_BTN_AGREE]    = { @"Agree and Continue", @"同意并继续", @"同意並繼續" },
-    [K_FMT_STATE_LINE] = { @"System version %1$@ · %2$@", @"系统版本 %1$@ · %2$@", @"系統版本 %1$@ · %2$@" },
-    [K_MENU_ABOUT]   = { @"About YT6801 Installer", @"关于 YT6801 安装器", @"關於 YT6801 安裝器" },
-    [K_MENU_QUIT]    = { @"Quit YT6801 Installer", @"退出 YT6801 安装器", @"結束 YT6801 安裝器" },
-};
-
-static NSString *
-S(NSInteger k)
-{
-    return kUiStrings[k][gLang];
-}
 
 /* ------------------------------------------------------------------ */
 #pragma mark - License text
@@ -1568,6 +1670,24 @@ main(int argc, const char * argv[])
         }
 
         NSApplication * app = [NSApplication sharedApplication];
+
+        /* Single instance guard: a second copy cannot drive the same system
+         * extension state and would race the first one's install/uninstall. */
+        for (NSRunningApplication * a in [NSRunningApplication
+                runningApplicationsWithBundleIdentifier:kInstallerID]) {
+            if (a.processIdentifier != getpid()) {
+                NSAlert * dup = [[NSAlert alloc] init];
+                dup.alertStyle = NSAlertStyleWarning;
+                dup.messageText = @"YT6801 Installer is already running.";
+                dup.informativeText =
+                    @"Please use the window that is already open. "
+                    @"Running two copies at once could corrupt the driver state.";
+                [dup addButtonWithTitle:@"OK"];
+                [dup runModal];
+                return 1;
+            }
+        }
+
         InstallerController * ctl = [[InstallerController alloc] init];
         app.delegate = ctl;
 

@@ -25,6 +25,51 @@
 #include <unistd.h>
 
 static NSString * const kExtensionID = @"io.miniyv.yt6801ethernet";
+
+/* UI language passed by the installer: 0 = en, 1 = zh-Hans, 2 = zh-Hant */
+static int gLang = 1;
+
+enum {
+    H_REPLACING, H_APPROVAL_UNLOAD, H_APPROVAL_LOAD, H_REBOOT,
+    H_COMPLETED, H_BANNER, H_NO_REQ, H_SUBMITTED, H_TIMEOUT, H_DETECT_FAIL,
+};
+
+/* Column order must match the enum above. */
+static NSString * kHostStrings[][3] = {
+    [H_REPLACING] = { @"Existing extension with same ID: old %@ -> new %@, replacing",
+                      @"检测到同 ID 扩展：旧 %@ → 新 %@，选择替换",
+                      @"偵測到同 ID 擴充功能：舊 %@ → 新 %@，選擇替換" },
+    [H_APPROVAL_UNLOAD] = { @"NEED_APPROVAL - uninstall requires admin approval, click Allow in the dialog",
+                      @"NEED_APPROVAL —— 卸载需要管理员授权，请在弹出的框里点「允许」",
+                      @"NEED_APPROVAL —— 解除安裝需要管理者授權，請在彈出的框裡點「允許」" },
+    [H_APPROVAL_LOAD] = { @"NEED_APPROVAL - sysextd requires user approval, allow YT6801 in System Settings",
+                      @"NEED_APPROVAL —— sysextd 要求用户批准，请在系统设置里允许 YT6801",
+                      @"NEED_APPROVAL —— sysextd 要求使用者核准，請在系統設定裡允許 YT6801" },
+    [H_REBOOT] = { @"RESULT=WillCompleteAfterReboot (restart required)",
+                      @"RESULT=WillCompleteAfterReboot（需要重启才生效）",
+                      @"RESULT=WillCompleteAfterReboot（需要重新開機才生效）" },
+    [H_COMPLETED] = { @"RESULT=Completed (no restart) result=%ld",
+                      @"RESULT=Completed（无需重启）result=%ld",
+                      @"RESULT=Completed（無需重新開機）result=%ld" },
+    [H_BANNER] = { @"======== host %@ (pid %d) ========",
+                      @"======== 宿主 %@（pid %d）========",
+                      @"======== 宿主 %@（pid %d）========" },
+    [H_NO_REQ] = { @"Cannot create request", @"无法构造请求", @"無法建構請求" },
+    [H_SUBMITTED] = { @"Request submitted, waiting for sysextd callback…",
+                      @"请求已提交，等待 sysextd 回调…",
+                      @"請求已送出，等待 sysextd 回呼…" },
+    [H_TIMEOUT] = { @"TIMEOUT - no sysextd callback within %llu s",
+                      @"TIMEOUT —— %llu 秒内没有收到 sysextd 回调",
+                      @"TIMEOUT —— %llu 秒內沒有收到 sysextd 回呼" },
+    [H_DETECT_FAIL] = { @"Detection failed: %s", @"检测失败：%s", @"偵測失敗：%s" },
+};
+
+static NSString *
+SL(int k)
+{
+    return kHostStrings[k][gLang];
+}
+
 static FILE * gLog = NULL;
 
 static const char *
@@ -75,7 +120,7 @@ finish(int code)
                  actionForReplacingExtension:(OSSystemExtensionInfo *)existing
                                withExtension:(OSSystemExtensionInfo *)ext
 {
-    LOG(@"已存在同 ID 扩展：旧 %@ → 新 %@，选择替换",
+    LOG(SL(H_REPLACING),
         existing.bundleShortVersion ?: @"?", ext.bundleShortVersion ?: @"?");
     return OSSystemExtensionReplacementActionReplace;
 }
@@ -83,9 +128,9 @@ finish(int code)
 - (void)requestNeedsUserApproval:(OSSystemExtensionRequest *)request
 {
     if (self.unloading) {
-        LOG(@"NEED_APPROVAL —— 卸载需要管理员授权，请在弹出的框里点「允许」");
+        LOG(SL(H_APPROVAL_UNLOAD));
     } else {
-        LOG(@"NEED_APPROVAL —— sysextd 要求用户批准，请在系统设置里允许 YT6801");
+        LOG(SL(H_APPROVAL_LOAD));
     }
 }
 
@@ -93,10 +138,10 @@ finish(int code)
         didFinishWithResult:(OSSystemExtensionRequestResult)result
 {
     if (result == OSSystemExtensionRequestWillCompleteAfterReboot) {
-        LOG(@"RESULT=WillCompleteAfterReboot（需要重启才生效）");
+        LOG(SL(H_REBOOT));
         finish(4);
     }
-    LOG(@"RESULT=Completed（无需重启）result=%ld", (long)result);
+    LOG(SL(H_COMPLETED), (long)result);
     finish(0);
 }
 
@@ -124,7 +169,7 @@ printStatus(void)
         [t launch];
         [t waitUntilExit];
     } @catch (NSException * e) {
-        printf("检测失败：%s\n", e.reason.UTF8String ?: "");
+        printf("%s\n", [SL(H_DETECT_FAIL) UTF8String]);
         return;
     }
     NSData * d = [[pipe fileHandleForReading] readDataToEndOfFile];
@@ -144,6 +189,9 @@ main(int argc, const char * argv[])
         NSString * logPath = (argc > 2)
             ? [NSString stringWithUTF8String:argv[2]]
             : @"/tmp/yt6801_host.log";
+        if (argc > 3) {
+            gLang = atoi(argv[3]);
+        }
 
         if ([mode isEqualToString:@"--status"]) {
             printStatus();
@@ -159,8 +207,8 @@ main(int argc, const char * argv[])
         gLog = fopen(logPath.UTF8String, "a");
         if (gLog) setvbuf(gLog, NULL, _IOLBF, 0);
 
-        LOG(@"======== 宿主 %@（pid %d）========",
-            unloading ? @"卸载" : @"激活", (int)getpid());
+        LOG(SL(H_BANNER),
+            unloading ? @"Uninstall" : @"Activate", (int)getpid());
         LOG(@"bundle = %@", [[NSBundle mainBundle] bundlePath]);
 
         HostActivator * act = [HostActivator new];
@@ -172,19 +220,19 @@ main(int argc, const char * argv[])
             : [OSSystemExtensionRequest activationRequestForExtension:kExtensionID
                                                                 queue:dispatch_get_main_queue()];
         if (req == nil) {
-            LOG(@"无法构造请求");
+            LOG(SL(H_NO_REQ));
             finish(2);
         }
         req.delegate = act;
         [[OSSystemExtensionManager sharedManager] submitRequest:req];
-        LOG(@"请求已提交，等待 sysextd 回调…");
+        LOG(SL(H_SUBMITTED));
 
         /* Hard timeout: deactivation waits for user approval (5 min);
          * 2 min is enough for activation */
         unsigned long long limit = unloading ? 300ull : 120ull;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(limit * NSEC_PER_SEC)),
                        dispatch_get_main_queue(), ^{
-            LOG(@"TIMEOUT —— %llu 秒内没有收到 sysextd 回调", limit);
+            LOG(SL(H_TIMEOUT), limit);
             finish(3);
         });
 

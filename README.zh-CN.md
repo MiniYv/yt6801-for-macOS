@@ -51,16 +51,16 @@
 
 ## 脚本一览
 
-| 脚本 | 用途 |
-|---|---|
-| `build.sh` | 编译、签名、打包 dext |
-| `install.sh` / `uninstall.sh` | 安装 / 卸载驱动与宿主 app |
-| `update.sh` / `hotupdate.sh` / `redeploy.sh` | 抬版本号升级的辅助脚本 |
-| `test.sh` | 宿主侧逻辑验证（描述符环模拟器） |
-| `loopback_test.sh` | 对运行中的驱动做 PHY 自环测试 |
-| `watch_activate.sh` | 监视系统扩展激活状态 |
-| `nic_test.sh` | 链路、延迟、错误计数、吞吐与压力测试 |
-| `installer/scripts/build.sh` | 构建 GUI 安装器 DMG/ZIP |
+| 脚本                                           | 用途                 |
+| -------------------------------------------- | ------------------ |
+| `build.sh`                                   | 编译、签名、打包 dext      |
+| `install.sh` / `uninstall.sh`                | 安装 / 卸载驱动与宿主 app   |
+| `update.sh` / `hotupdate.sh` / `redeploy.sh` | 抬版本号升级的辅助脚本        |
+| `test.sh`                                    | 宿主侧逻辑验证（描述符环模拟器）   |
+| `loopback_test.sh`                           | 对运行中的驱动做 PHY 自环测试  |
+| `watch_activate.sh`                          | 监视系统扩展激活状态         |
+| `nic_test.sh`                                | 链路、延迟、错误计数、吞吐与压力测试 |
+| `installer/scripts/build.sh`                 | 构建 GUI 安装器 DMG/ZIP |
 
 ## 许可证
 
