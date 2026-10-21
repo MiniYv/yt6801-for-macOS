@@ -5,7 +5,7 @@
 	<key>CFBundleName</key>
 	<string>YT6801Driver</string>
 	<key>CFBundleDisplayName</key>
-	<string>YT6801 网卡驱动</string>
+	<string>YT6801 Ethernet Driver</string>
 	<key>CFBundleIdentifier</key>
 	<string>io.miniyv.yt6801host</string>
 	<key>CFBundleExecutable</key>
@@ -19,7 +19,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>1.0.0</string>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>zh_CN</string>
+	<string>en</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
 	<key>NSHighResolutionCapable</key>
@@ -30,8 +30,8 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSSystemExtensionUsageDescription</key>
-	<string>YT6801 网卡驱动需要安装系统扩展才能工作。</string>
+	<string>YT6801 Ethernet driver needs to install a system extension to work.</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>完全免费 · GPL-2.0 开源许可 · Copyright (c) 2026 MiniYv</string>
+	<string>Free under GPL-2.0 · Copyright (c) 2026 MiniYv</string>
 </dict>
 </plist>

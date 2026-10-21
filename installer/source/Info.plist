@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>zh_CN</string>
+	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>YT6801 Installer</string>
 	<key>CFBundleExecutable</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>YT6801 安装器</string>
+	<string>YT6801 Installer</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -25,10 +25,10 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
-	<string>完全免费 · GPL-2.0 开源许可 · Copyright (c) 2026 MiniYv</string>
+	<string>Free under GPL-2.0 · Copyright (c) 2026 MiniYv</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSSystemExtensionUsageDescription</key>
-	<string>YT6801 网卡驱动需要安装系统扩展才能工作。</string>
+	<string>YT6801 Ethernet driver needs to install a system extension to work.</string>
 </dict>
 </plist>
