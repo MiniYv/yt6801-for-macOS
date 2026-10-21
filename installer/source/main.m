@@ -35,6 +35,7 @@ static NSString * const kHostID     = @"io.miniyv.yt6801host";
 static NSString * const kAppPath    = @"/Applications/YT6801Driver.app";
 static NSString * const kLogPath    = @"/tmp/yt6801_installer.log";
 static NSString * const kExtLogPath = @"/tmp/yt6801_activate.log";
+#define LSREG_PATH "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 static NSString * const kInstallerID = @"io.miniyv.yt6801.installer";
 
 static NSString * const kBuiltinVersion = @YT_BUILTIN_VERSION;
@@ -1718,6 +1719,27 @@ main(int argc, const char * argv[])
         [app setActivationPolicy:NSApplicationActivationPolicyRegular];
         [app run];
         (void)ctl;
+    }
+
+    /* Launched from a DMG: forget this copy in LaunchServices, or every
+     * mount leaves a ghost entry in Launchpad. Only the DMG copy is
+     * unregistered — the deployed host in /Applications must stay known to
+     * LaunchServices, sysextd locates it through it. */
+    {
+        NSString * selfPath = [[NSBundle mainBundle] bundlePath];
+        if ([selfPath hasPrefix:@"/Volumes/"]) {
+            NSTask * u = [[NSTask alloc] init];
+            u.launchPath = LSREG_PATH;
+            u.arguments  = @[ @"-u", selfPath ];
+            u.standardOutput = [NSPipe pipe];
+            u.standardError  = [NSPipe pipe];
+            @try {
+                [u launch];
+                [u waitUntilExit];
+            } @catch (NSException * e) {
+                /* cosmetic cleanup only, never fatal */
+            }
+        }
     }
     return 0;
 }
