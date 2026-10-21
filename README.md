@@ -26,15 +26,37 @@ This driver is a port of the vendor's Linux driver ([motorcomm yt6801 / fuxi-gma
 
 - **Mechrevo Jiaolong 16 Pro (Youwan Qingchun edition)** — Ryzen 9 8940HX + RTX 5060, Hackintosh
 
+This machine runs the driver 24/7 with wired link, DHCP, unplug/fallback and sleep/wake all verified stable. **Other hardware is untested** — the driver should work on any machine exposing a YT6801 (`1f0a:6801`) PCIe function, but results depend on your platform (PCIe wiring, BIOS, VTD setup).
+
+Found a problem? Please [open an issue](../../issues). Suggestions and corrections are welcome as pull requests.
+
 ## Install
 
-Download `YT6801-安装器-1.0.dmg` from the [Releases](../../releases) page, open it, drag the installer to Applications if you like, launch it and click **Install**. The app activates the system extension and brings up the interface — no restart needed.
+### Hackintosh
+
+1. Download `YT6801-Installer-1.0.dmg` from the [Releases](../../releases) page and open it
+2. Launch **YT6801 Installer**, pick a language, accept the license, click **Install**
+3. Plug in the cable — no restart needed
+
+Most hackintosh setups (SIP disabled / AMFI relaxed) activate the driver silently. If activation is blocked, check that SIP is off and that `amfi_get_out_of_my_way=0x1` is in boot-args.
+
+### Real Macs (free path)
+
+The driver is ad-hoc signed — Apple charges $99/year for the Developer ID + notarization that real Macs require, so the free way to run it on a real Mac is to relax the security policy first:
+
+1. Boot into Recovery, open Terminal: `csrutil disable`
+2. Add `amfi_get_out_of_my_way=0x1 amfi=0x80` to boot-args and reboot
+3. Then install as above
+
+On a fully stock, SIP-enabled Mac the unsigned dext will not load — there is no free workaround for that; it requires a paid Apple Developer account, and the DriverKit networking entitlement additionally needs Apple's special approval.
 
 CLI mode:
 
 ```
-"/Applications/YT6801 安装器.app/Contents/MacOS/YT6801Installer" --install    # or --status / --uninstall
+"YT6801 Installer 1.0.app/Contents/MacOS/YT6801Installer" --install    # or --status / --uninstall
 ```
+
+More details: [docs/en/build-and-install.md](docs/en/build-and-install.md) · Documentation also available in [简体中文](docs/zh-CN/build-and-install.md) and [繁體中文](docs/zh-TW/build-and-install.md).
 
 ## Build from source
 

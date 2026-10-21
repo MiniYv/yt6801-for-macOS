@@ -26,15 +26,37 @@
 
 - **机械革命 蛟龙16Pro 潮玩青春版**——Ryzen 9 8940HX + RTX 5060，黑苹果
 
+本机 7×24 小时日常使用，有线链路、DHCP、拔线回落、睡眠唤醒均已实测稳定。**其他机型未测试**——理论上任何带 YT6801（`1f0a:6801`）PCIe 设备的机器都能用，但实际表现取决于平台（PCIe 布线、BIOS、VTD 配置）。
+
+遇到问题请[提交 issue](../../issues)；有建议或指正，欢迎提 PR。
+
 ## 安装
 
-从 [Releases](../../releases) 下载 `YT6801-安装器-1.0.dmg`，打开后运行安装器，点击**安装**即可——系统扩展自动激活，无需重启。
+### 黑苹果
+
+1. 从 [Releases](../../releases) 下载 `YT6801-Installer-1.0.dmg` 并打开
+2. 启动 **YT6801 Installer**，选语言、同意协议、点**安装**
+3. 插上网线即可用，无需重启
+
+大多数黑苹果环境（SIP 关闭 / AMFI 放宽）会静默激活驱动。如果激活被拦截，检查 SIP 是否关闭、boot-args 里是否有 `amfi_get_out_of_my_way=0x1`。
+
+### 白苹果（免费方案）
+
+本驱动是 ad-hoc 签名——正版 Mac 要求 Developer ID 签名 + 公证（$99/年），所以在白苹果上免费运行的办法是先放宽安全策略：
+
+1. 进恢复模式，开终端执行 `csrutil disable`
+2. boot-args 加上 `amfi_get_out_of_my_way=0x1 amfi=0x80` 后重启
+3. 然后按上面流程安装
+
+完全原版（SIP 开启）的白苹果无法加载未签名 dext，这一点没有免费绕法——需要付费开发者账号，而且 DriverKit 网络 entitlement 还要向苹果专项申请。
 
 命令行方式：
 
 ```
-"/Applications/YT6801 安装器.app/Contents/MacOS/YT6801Installer" --install    # 或 --status / --uninstall
+"YT6801 Installer 1.0.app/Contents/MacOS/YT6801Installer" --install    # 或 --status / --uninstall
 ```
+
+更多细节见 [docs/zh-CN/build-and-install.md](docs/zh-CN/build-and-install.md)，其他文档：[English](docs/en/build-and-install.md) · [繁體中文](docs/zh-TW/build-and-install.md)。
 
 ## 从源码构建
 

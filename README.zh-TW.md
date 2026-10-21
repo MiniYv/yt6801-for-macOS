@@ -26,15 +26,37 @@
 
 - **機械革命 蛟龍16Pro 潮玩青春版**——Ryzen 9 8940HX + RTX 5060，黑蘋果
 
+本機 7×24 小時日常使用，有線鏈路、DHCP、拔線回落、睡眠喚醒均已實測穩定。**其他機型未測試**——理論上任何帶 YT6801（`1f0a:6801`）PCIe 裝置的機器都能用，但實際表現取決於平台（PCIe 佈線、BIOS、VTD 組態）。
+
+遇到問題請[提交 issue](../../issues)；有建議或指正，歡迎提 PR。
+
 ## 安裝
 
-從 [Releases](../../releases) 下載 `YT6801-安裝器-1.0.dmg`，開啟後執行安裝程式，點擊**安裝**即可——系統擴充功能自動啟用，無需重新開機。
+### 黑蘋果
+
+1. 從 [Releases](../../releases) 下載 `YT6801-Installer-1.0.dmg` 並開啟
+2. 啟動 **YT6801 Installer**，選語言、同意協議、點**安裝**
+3. 插上網路線即可用，無需重開機
+
+大多數黑蘋果環境（SIP 關閉 / AMFI 放寬）會靜默啟用驅動。如果啟用被攔截，檢查 SIP 是否關閉、boot-args 裡是否有 `amfi_get_out_of_my_way=0x1`。
+
+### 白蘋果（免費方案）
+
+本驅動是 ad-hoc 簽名——正版 Mac 要求 Developer ID 簽名 + 公證（$99/年），所以在白蘋果上免費執行的辦法是先放寬安全政策：
+
+1. 進復原模式，開終端機執行 `csrutil disable`
+2. boot-args 加上 `amfi_get_out_of_my_way=0x1 amfi=0x80` 後重開機
+3. 然後照上面流程安裝
+
+完全原版（SIP 開啟）的白蘋果無法載入未簽名 dext，這一點沒有免費繞法——需要付費開發者帳號，而且 DriverKit 網路 entitlement 還要向蘋果專項申請。
 
 命令列方式：
 
 ```
-"/Applications/YT6801 安裝器.app/Contents/MacOS/YT6801Installer" --install    # 或 --status / --uninstall
+"YT6801 Installer 1.0.app/Contents/MacOS/YT6801Installer" --install    # 或 --status / --uninstall
 ```
+
+更多細節見 [docs/zh-TW/build-and-install.md](docs/zh-TW/build-and-install.md)，其他文件：[English](docs/en/build-and-install.md) · [简体中文](docs/zh-CN/build-and-install.md)。
 
 ## 從原始碼建置
 
