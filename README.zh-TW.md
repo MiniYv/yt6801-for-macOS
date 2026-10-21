@@ -53,10 +53,20 @@
 
 完全原版（SIP 開啟）的白蘋果無法載入未簽名 dext，這一點沒有免費繞法——需要付費開發者帳號，而且 DriverKit 網路 entitlement 還要向蘋果專項申請。
 
-命令列方式：
+命令列方式 —— 直接執行安裝程式執行檔（在掛載的 DMG 中，或複製到 /Applications 之後）：
 
 ```
-"YT6801 Installer 1.0.app/Contents/MacOS/YT6801Installer" --install    # 或 --status / --uninstall
+"YT6801 Installer x.x.app/Contents/MacOS/YT6801Installer" --status
+"YT6801 Installer x.x.app/Contents/MacOS/YT6801Installer" --install
+"YT6801 Installer x.x.app/Contents/MacOS/YT6801Installer" --uninstall
+```
+
+驅動程式安裝後，也可以不經過安裝程式，直接用 /Applications 下的宿主 app 啟用或停用擴充功能：
+
+```
+/Applications/YT6801Driver.app/Contents/MacOS/yt6801host --status
+/Applications/YT6801Driver.app/Contents/MacOS/yt6801host --activate
+/Applications/YT6801Driver.app/Contents/MacOS/yt6801host --deactivate
 ```
 
 更多細節見 [docs/zh-TW/build-and-install.md](docs/zh-TW/build-and-install.md)，其他文件：[English](docs/en/build-and-install.md) · [简体中文](docs/zh-CN/build-and-install.md)。

@@ -53,10 +53,20 @@ The driver is ad-hoc signed — Apple charges $99/year for the Developer ID + no
 
 On a fully stock, SIP-enabled Mac the unsigned dext will not load — there is no free workaround for that; it requires a paid Apple Developer account, and the DriverKit networking entitlement additionally needs Apple's special approval.
 
-CLI mode:
+CLI mode — run the installer binary directly (from the mounted DMG, or after copying it to /Applications):
 
 ```
-"YT6801 Installer 1.0.app/Contents/MacOS/YT6801Installer" --install    # or --status / --uninstall
+"YT6801 Installer x.x.app/Contents/MacOS/YT6801Installer" --status
+"YT6801 Installer x.x.app/Contents/MacOS/YT6801Installer" --install
+"YT6801 Installer x.x.app/Contents/MacOS/YT6801Installer" --uninstall
+```
+
+Once the driver is installed, the host app in /Applications can activate or deactivate the extension without the installer:
+
+```
+/Applications/YT6801Driver.app/Contents/MacOS/yt6801host --status
+/Applications/YT6801Driver.app/Contents/MacOS/yt6801host --activate
+/Applications/YT6801Driver.app/Contents/MacOS/yt6801host --deactivate
 ```
 
 More details: [docs/en/build-and-install.md](docs/en/build-and-install.md) · Documentation also available in [简体中文](docs/zh-CN/build-and-install.md) and [繁體中文](docs/zh-TW/build-and-install.md).
