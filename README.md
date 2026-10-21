@@ -25,8 +25,9 @@ This driver is ported from the vendor's Linux driver for the same chip — the `
 ## Tested hardware
 
 - **Mechrevo Jiaolong 16 Pro (Youwan Qingchun edition)** — Ryzen 9 8940HX + RTX 5060, Hackintosh
+- Tested OS: **macOS 26.7.1 (Tahoe)**
 
-This machine runs the driver 24/7 with wired link, DHCP, unplug/fallback and sleep/wake all verified stable. **Other hardware is untested** — the driver should work on any machine exposing a YT6801 (`1f0a:6801`) PCIe function, but results depend on your platform (PCIe wiring, BIOS, VTD setup).
+This machine runs the driver 24/7 with wired link, DHCP, unplug/fallback and sleep/wake all verified stable. **Other hardware and OS versions are untested** — the driver should work on any machine exposing a YT6801 (`1f0a:6801`) PCIe function, but results depend on your platform (PCIe wiring, BIOS, VTD setup).
 
 Found a problem? Please [open an issue](../../issues). Suggestions and corrections are welcome as pull requests.
 
