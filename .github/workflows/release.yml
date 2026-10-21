@@ -17,15 +17,19 @@ jobs:
 
       - name: Select Xcode with DriverKit SDK
         run: |
-          ls /Applications | grep -i xcode
-          sudo xcode-select -s /Applications/Xcode*.app/Contents/Developer
+          ls -d /Applications/Xcode*.app || true
+          XC="$(ls -d /Applications/Xcode*.app | sort | tail -1)/Contents/Developer"
+          echo "Selecting $XC"
+          sudo xcode-select -s "$XC"
           xcodebuild -version
-          xcodebuild -showsdks | grep -i driverkit
+          xcodebuild -showsdks | grep -i driverkit || { echo "no driverkit SDK:"; xcodebuild -showsdks; exit 1; }
 
       - name: Resolve toolchain paths
         run: |
-          SDK="$(xcrun -sdk driverkit26.0 --show-sdk-path)"
-          IIG="$(xcrun -sdk driverkit26.0 -f iig)"
+          DKSDK="$(xcodebuild -showsdks | grep -io 'driverkit[0-9.]*' | tail -1)"
+          echo "Using SDK: $DKSDK"
+          SDK="$(xcrun -sdk "$DKSDK" --show-sdk-path)"
+          IIG="$(xcrun -sdk "$DKSDK" -f iig)"
           echo "DKX=${SDK}"                    >> "$GITHUB_ENV"
           echo "IIGBIN=${IIG}"                 >> "$GITHUB_ENV"
           echo "CLANG=$(xcrun -f clang++)"     >> "$GITHUB_ENV"
