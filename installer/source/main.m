@@ -934,8 +934,14 @@ performUninstall(double * progress, void (^tick)(double))
         appendDetail(out);
     }
 
-    /* Double-check with the system before touching any files */
+    /* Double-check with the system before touching any files. sysextd
+     * removes the record asynchronously, so poll for up to 15 s instead
+     * of failing on the first read. */
     ExtState after = queryState();
+    for (int i = 0; i < 15 && after.installed; i++) {
+        sleep(1);
+        after = queryState();
+    }
     if (after.installed) {
         return S(K_UNINSTALL_INCOMPLETE);
     }
