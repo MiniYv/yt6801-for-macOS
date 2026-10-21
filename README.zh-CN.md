@@ -35,7 +35,7 @@
 
 ### 黑苹果
 
-1. 从 [Releases](../../releases) 下载 `YT6801-Installer-1.0.dmg` 并打开
+1. 从 [Releases](../../releases) 下载 `YT6801-Installer-x.x.dmg` 并打开
 2. 启动 **YT6801 Installer**，选语言、同意协议、点**安装**
 3. 插上网线即可用，无需重启
 

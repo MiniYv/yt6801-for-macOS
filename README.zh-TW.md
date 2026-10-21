@@ -35,7 +35,7 @@
 
 ### 黑蘋果
 
-1. 從 [Releases](../../releases) 下載 `YT6801-Installer-1.0.dmg` 並開啟
+1. 從 [Releases](../../releases) 下載 `YT6801-Installer-x.x.dmg` 並開啟
 2. 啟動 **YT6801 Installer**，選語言、同意協議、點**安裝**
 3. 插上網路線即可用，無需重開機
 

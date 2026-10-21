@@ -35,7 +35,7 @@ Found a problem? Please [open an issue](../../issues). Suggestions and correctio
 
 ### Hackintosh
 
-1. Download `YT6801-Installer-1.0.dmg` from the [Releases](../../releases) page and open it
+1. Download `YT6801-Installer-x.x.dmg` from the [Releases](../../releases) page and open it
 2. Launch **YT6801 Installer**, pick a language, accept the license, click **Install**
 3. Plug in the cable — no restart needed
 
