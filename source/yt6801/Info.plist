@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>yt6801</string>
+	<key>CFBundleIdentifier</key>
+	<string>io.miniyv.yt6801ethernet</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>yt6801</string>
+	<key>CFBundlePackageType</key>
+	<string>DEXT</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleSupportedPlatforms</key>
+	<array>
+		<string>DriverKit</string>
+	</array>
+	<key>CFBundleVersion</key>
+	<string>1.0</string>
+	<key>IOKitPersonalities</key>
+	<dict>
+		<key>yt6801</key>
+		<dict>
+			<key>CFBundleIdentifier</key>
+			<string>io.miniyv.yt6801ethernet</string>
+			<key>CFBundleIdentifierKernel</key>
+			<string>com.apple.iokit.IOSkywalkFamily</string>
+			<key>IOClass</key>
+			<string>IOUserNetworkEthernet</string>
+			<key>IOMatchCategory</key>
+			<string>IODefaultMatchCategory</string>
+			<key>IOName</key>
+			<string>Ethernet Controller</string>
+			<key>IOPCIPrimaryMatch</key>
+			<string>0x68011f0a</string>
+			<key>IOProbeScore</key>
+			<integer>100000</integer>
+			<key>IOProviderClass</key>
+			<string>IOPCIDevice</string>
+			<key>IOUserClass</key>
+			<string>io_miniyv_yt6801ethernet</string>
+			<key>IOUserServerName</key>
+			<string>io.miniyv.yt6801ethernet</string>
+			<key>IOVendor</key>
+			<string>Motorcomm Microelectronics</string>
+			<key>model</key>
+			<string>Motorcomm YT6801 PCIe Gigabit Ethernet Controller</string>
+			<key>vendor</key>
+			<string>Motorcomm Microelectronics</string>
+		</dict>
+	</dict>
+	<key>OSBundleLibraries</key>
+	<dict>
+		<key>com.apple.iokit.IOSkywalkFamily</key>
+		<string>1.0</string>
+	</dict>
+	<key>OSBundleRequired</key>
+	<string>DriverKit</string>
+	<key>OSBundleUsageDescription</key>
+	<string>YT6801 Gigabit Ethernet controller driver</string>
+	<key>OSMinimumDriverKitVersion</key>
+	<string>25.0</string>
+</dict>
+</plist>

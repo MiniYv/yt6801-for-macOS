@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>zh_CN</string>
+	<key>CFBundleDisplayName</key>
+	<string>YT6801 安装器</string>
+	<key>CFBundleExecutable</key>
+	<string>YT6801Installer</string>
+	<key>CFBundleIdentifier</key>
+	<string>io.miniyv.yt6801.installer</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>YT6801 安装器</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0.0</string>
+	<key>CFBundleVersion</key>
+	<string>1.0.0</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSHumanReadableCopyright</key>
+	<string>完全免费 · MIT License · Copyright (c) 2026 YT6801 Driver Contributors</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>NSSystemExtensionUsageDescription</key>
+	<string>YT6801 网卡驱动需要安装系统扩展才能工作。</string>
+</dict>
+</plist>

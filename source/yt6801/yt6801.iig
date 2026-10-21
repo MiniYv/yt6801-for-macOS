@@ -1,0 +1,156 @@
+/*
+ * yt6801.iig — IIG interface definition for the Motorcomm YT6801
+ * Gigabit Ethernet DEXT.
+ *
+ * In DriverKit the .iig is the class declaration itself: iig generates
+ * yt6801.h (class definition, _Start_Args parameter structs, metaclass
+ * macros). Every virtual of the driver class must be listed here,
+ * including the LOCALONLY internal helpers.
+ */
+#ifndef YT6801_IIG
+#define YT6801_IIG
+
+#include <Availability.h>
+#include <DriverKit/IOService.iig>
+#include <DriverKit/IODispatchQueue.iig>
+#include <DriverKit/IOBufferMemoryDescriptor.iig>
+#include <DriverKit/IOInterruptDispatchSource.iig>
+#include <DriverKit/IOTimerDispatchSource.iig>
+#include <PCIDriverKit/IOPCIDevice.iig>
+#include <NetworkingDriverKit/IOUserNetworkEthernet.iig>
+#include <NetworkingDriverKit/IOUserNetworkPacketBufferPool.iig>
+#include <NetworkingDriverKit/IOUserNetworkPacketQueue.iig>
+#include <NetworkingDriverKit/IOUserNetworkPacketPoller.iig>
+#include <NetworkingDriverKit/IOUserNetworkTxSubmissionQueue.iig>
+#include <NetworkingDriverKit/IOUserNetworkTxCompletionQueue.iig>
+#include <NetworkingDriverKit/IOUserNetworkRxSubmissionQueue.iig>
+#include <NetworkingDriverKit/IOUserNetworkRxCompletionQueue.iig>
+
+class io_miniyv_yt6801ethernet : public IOUserNetworkEthernet
+{
+public:
+    virtual bool init() override;
+    virtual void free() override;
+
+    virtual kern_return_t Start(IOService * provider) override;
+    virtual kern_return_t Stop(IOService * provider) override;
+
+    /* ------------------------------------------------------------------
+     * The 10 deprecated pure-virtual IOUserNetworkEthernet methods.
+     * All are still = 0 in IOUserNetworkEthernet.iig, so every one must
+     * be implemented for the class to instantiate.
+     * ------------------------------------------------------------------ */
+    virtual kern_return_t SetInterfaceEnable(bool isEnable) override;
+    virtual kern_return_t SetPromiscuousModeEnable(bool enable) override;
+    virtual kern_return_t SetMulticastAddresses(
+        const IOUserNetworkMACAddress * addresses, uint32_t count) override;
+    virtual kern_return_t SetAllMulticastModeEnable(bool enable) override;
+    virtual kern_return_t SelectMediaType(IOUserNetworkMediaType mediaType) override;
+    virtual kern_return_t SetWakeOnMagicPacketEnable(bool enable) override;
+    virtual kern_return_t SetMTU(uint32_t mtu) override;
+    virtual kern_return_t GetMaxTransferUnit(uint32_t * mtu) override;
+    virtual kern_return_t SetHardwareAssists(uint32_t hardwareAssists) override;
+    virtual kern_return_t GetHardwareAssists(uint32_t * hardwareAssists) override;
+
+    /* Supported media list. Without it the default is an empty table and
+     * `ifconfig enX` reports SIOCGIFXMEDIA: Input/output error. */
+    virtual kern_return_t getSupportedMediaArray(
+        MediaWord * mediaArray, uint32_t * mediaCount) LOCALONLY NDK_21;
+
+    /* ------------------------------------------------------------------
+     * All LOCALONLY below: called only inside the driver process, plain
+     * C++ calls with no cross-process RPC stub. Register access runs
+     * per-frame and must not be RPC.
+     * ------------------------------------------------------------------ */
+    virtual kern_return_t readRegister(uint32_t offset, uint32_t * value) LOCALONLY;
+    virtual kern_return_t writeRegister(uint32_t offset, uint32_t value) LOCALONLY;
+
+    /* MDIO access. */
+    virtual kern_return_t mdioRead(uint8_t reg, uint16_t * value) LOCALONLY;
+    virtual kern_return_t mdioWrite(uint8_t reg, uint16_t value) LOCALONLY;
+
+    /* Extended register window: 0x1E address / 0x1F data. */
+    virtual kern_return_t extRead(uint16_t reg, uint16_t * value) LOCALONLY;
+    virtual kern_return_t extWrite(uint16_t reg, uint16_t value) LOCALONLY;
+
+    virtual kern_return_t readMACAddress(uint8_t out[6]) LOCALONLY;
+    virtual kern_return_t dmaSoftReset() LOCALONLY;
+    virtual kern_return_t hardwareInit() LOCALONLY;
+
+    /* PHY internal loopback self-test (no cable needed): enter with
+     * BMCR 0x8140, verify, restore with 0x9140. Result bitmap in
+     * *result, 0 = all passed. */
+    virtual kern_return_t runLoopbackTest(uint64_t * result) LOCALONLY;
+
+    /* Register the ifnet with the network stack after hardware init. */
+    virtual kern_return_t registerInterface() LOCALONLY;
+
+    /* ==================================================================
+     * Real-machine loopback (no cable needed)
+     * ================================================================== */
+
+    /* Place the PHY in internal loopback, saving the original BMCR. */
+    virtual kern_return_t enterPhyLoopback() LOCALONLY;
+    /* Unconditionally restore the PHY (0x9140: reset + restart auto-neg). */
+    virtual kern_return_t exitPhyLoopback() LOCALONLY;
+
+    /* Push a real frame through the TX ring and check it comes back on RX.
+     * Result bitmap: bit0 TX descriptor consumed, bit1 RX complete,
+     * bit2 length match, bit3 content match, bit4 hardware error bit clear. */
+    virtual kern_return_t runHardwareLoopbackTest(uint64_t * result) LOCALONLY;
+
+    /* Report link status to the stack; without it no packets are sent. */
+    virtual void reportLink(bool up) LOCALONLY;
+
+    /* Read SPEC_STATUS and report only on change, driven by the MAC
+     * PHY-status-change interrupt (MAC_ISR.PHYIS). */
+    virtual void pollLinkStatus() LOCALONLY;
+
+    /* ==================================================================
+     * Datapath
+     * ================================================================== */
+
+    /* One MSI carries both MAC and DMA interrupts. TYPE() makes iig
+     * generate CreateActionInterruptOccurred; the three parameters must
+     * match IOInterruptDispatchSource::InterruptOccurred exactly. */
+    virtual void InterruptOccurred(OSAction * action, uint64_t count, uint64_t time)
+        TYPE(IOInterruptDispatchSource::InterruptOccurred);
+
+    /* TX doorbell: the stack queued packets on the TX submission queue.
+     * TYPE is IODataQueueDispatchSource::DataAvailable, not the queue class. */
+    virtual void TxDataAvailable(OSAction * action)
+        TYPE(IODataQueueDispatchSource::DataAvailable);
+
+    /* RX return: the stack gave used packets back on the RX submission queue. */
+    virtual void RxDataAvailable(OSAction * action)
+        TYPE(IODataQueueDispatchSource::DataAvailable);
+
+    /* Poll timer: periodic harvesting via IOTimerDispatchSource (TYPE must
+     * match IOTimerDispatchSource::TimerOccurred exactly). */
+    virtual void PollTimerOccurred(OSAction * action, uint64_t time)
+        TYPE(IOTimerDispatchSource::TimerOccurred);
+
+    /* Allocate ring memory, arm initial RX buffers, enable interrupts,
+     * start DMA. */
+    virtual kern_return_t setupDatapath() LOCALONLY;
+    /* Stop DMA, disable interrupts, free rings and in-flight packets.
+     * Reentrant. */
+    virtual void teardownDatapath() LOCALONLY;
+
+    /* RX: deliver completed frames to the stack, then re-arm free slots. */
+    virtual void serviceRx() LOCALONLY;
+    /* Refill: take packets from rxFree into the empty descriptor window. */
+    virtual void refillRx() LOCALONLY;
+    /* TX: dequeue packets, write descriptors, push the tail pointer. */
+    virtual void serviceTx() LOCALONLY;
+    /* Reclaim: return completed descriptors' packets to the TX completion
+     * queue. */
+    virtual void reclaimTx() LOCALONLY;
+
+    /* Enable/disable RX/TX (ifconfig up/down lands here). */
+    virtual void enableDatapath(bool enable) LOCALONLY;
+    /* Log one line of counters; why identifies the call site. */
+    virtual void logCounters(uint32_t why) LOCALONLY;
+};
+
+#endif /* YT6801_IIG */

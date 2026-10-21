@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Only entitlement required to activate the system extension.
+	     Without a developer account it fails validation; boot-arg dk=0x8001 permits it. -->
+	<key>com.apple.developer.system-extension.install</key>
+	<true/>
+</dict>
+</plist>

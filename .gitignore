@@ -1,0 +1,18 @@
+# build artifacts
+dist/
+build/
+sysroot
+
+# GUI installer release artifacts
+installer/dist/
+
+# vendor research symlink
+research
+
+# local work data
+.workbuddy/
+logs/
+docs/wired-1.1.1.patch
+
+# macOS noise
+.DS_Store
