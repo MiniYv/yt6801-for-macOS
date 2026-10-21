@@ -1729,7 +1729,7 @@ main(int argc, const char * argv[])
         NSString * selfPath = [[NSBundle mainBundle] bundlePath];
         if ([selfPath hasPrefix:@"/Volumes/"]) {
             NSTask * u = [[NSTask alloc] init];
-            u.launchPath = LSREG_PATH;
+            u.launchPath = @LSREG_PATH;
             u.arguments  = @[ @"-u", selfPath ];
             u.standardOutput = [NSPipe pipe];
             u.standardError  = [NSPipe pipe];
