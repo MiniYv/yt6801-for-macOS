@@ -4,7 +4,7 @@
 
 A user-space DriverKit (DEXT) network driver for the **Motorcomm YT6801 PCIe Gigabit Ethernet** controller (PCI `1f0a:6801`) on macOS.
 
-This driver is ported from the vendor's Linux driver for the same chip — the `fuxi-gmac` driver stack (v1.0.30) as circulated in the community. It inherits the **GNU GPL-2.0-or-later** license from the upstream project, as required.
+This driver is ported from the vendor's Linux driver for the same chip — the `fuxi-gmac` driver stack (source files mirrored on [GitHub](https://github.com/bartvdbraak/yt6801), originally from [Motorcomm's download page](https://www.motor-comm.com/product/ethernet-control-chip)). It inherits the **GNU GPL-2.0-or-later** license from the upstream project, as required.
 
 ## Features
 
