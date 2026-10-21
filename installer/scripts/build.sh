@@ -4,7 +4,7 @@
 #
 #   dist/YT6801Driver.app        headless host (carries the dext, copied to
 #                                /Applications during install)
-#   dist/YT6801 安装器.app        GUI installer (embeds the host template;
+#   dist/YT6801 Installer <version>.app        GUI installer (embeds the host template;
 #                                itself never needs installing)
 #
 #   The host template ships inside the installer as
@@ -24,7 +24,6 @@ cd "$ROOT"
 
 DEXT_SRC="${1:-$ROOT/../dist/yt6801.dext}"
 HOST="$ROOT/dist/YT6801Driver.app"
-INST="$ROOT/dist/YT6801 安装器.app"
 DEXT_ID="io.miniyv.yt6801ethernet"
 HOST_ID="io.miniyv.yt6801host"
 
@@ -43,6 +42,7 @@ fi
 
 VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$DEXT_BUNDLE/Contents/Info.plist" 2>/dev/null)
 [ -n "$VERSION" ] || { red "cannot read CFBundleVersion"; exit 1; }
+INST="$ROOT/dist/YT6801 Installer ${VERSION}.app"
 
 echo "==> DEXT   : $DEXT_BUNDLE"
 echo "==> Version: $VERSION"
@@ -127,14 +127,14 @@ xattr -cr "$HOST" "$INST" 2>/dev/null || true
 # .app bundles exist only briefly while packaging DMG/ZIP and are renamed to
 # .app.bak right after; not a bundle, so Spotlight never indexes a second YT6801.
 echo "==> Packaging"
-DMG="$ROOT/dist/YT6801-安装器-${VERSION}.dmg"
-ZIP="$ROOT/dist/YT6801-安装器-${VERSION}.zip"
+DMG="$ROOT/dist/YT6801-Installer-${VERSION}.dmg"
+ZIP="$ROOT/dist/YT6801-Installer-${VERSION}.zip"
 rm -f "$DMG" "$ZIP"
 
 STAGE=$(mktemp -d)
-ditto --rsrc --extattr --noqtn "$INST" "$STAGE/YT6801 安装器.app"
+ditto --rsrc --extattr --noqtn "$INST" "$STAGE/YT6801 Installer ${VERSION}.app"
 ln -s /Applications "$STAGE/Applications"
-hdiutil create -volname "YT6801 安装器" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null 2>&1 \
+hdiutil create -volname "YT6801 Installer ${VERSION}" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null 2>&1 \
     && green "    DMG OK" || { red "    DMG packaging failed"; rm -rf "$STAGE"; exit 1; }
 rm -rf "$STAGE"
 
@@ -166,10 +166,10 @@ green "    ZIP OK"
 # detects an app by Contents/Info.plist (CFBundlePackageType=APPL) regardless
 # of extension, so renaming to .app.bak alone is not enough.
 mkdir -p "$ROOT/dist/build"
-rm -rf "$ROOT/dist/build/YT6801Driver.zip" "$ROOT/dist/build/YT6801-安装器.zip" \
-       "$ROOT/dist/build/YT6801Driver.app.bak" "$ROOT/dist/build/YT6801 安装器.app.bak"
+rm -rf "$ROOT/dist/build/YT6801Driver.zip" "$ROOT/dist/build/YT6801-Installer.zip" \
+       "$ROOT/dist/build/YT6801Driver.app.bak" "$ROOT/dist/build/YT6801-Installer.app.bak"
 ditto -c -k --sequesterRsrc --keepParent "$HOST" "$ROOT/dist/build/YT6801Driver.zip"
-ditto -c -k --sequesterRsrc --keepParent "$INST" "$ROOT/dist/build/YT6801-安装器.zip"
+ditto -c -k --sequesterRsrc --keepParent "$INST" "$ROOT/dist/build/YT6801-Installer.zip"
 rm -rf "$HOST" "$INST"
 
 # The dirs existed briefly during the build and may have been registered; unregister them

@@ -150,7 +150,7 @@ enum {
 
 /* Order of columns must match the enum above. */
 static NSString * kUiStrings[][3] = {
-    [K_WINDOW_TITLE] = { @"YT6801 Installer", @"YT6801 安装器", @"YT6801 安裝器" },
+    [K_WINDOW_TITLE] = { @"YT6801 Installer", @"YT6801 Installer", @"YT6801 Installer" },
     [K_TITLE]        = { @"YT6801 Ethernet Driver", @"YT6801 有线网卡驱动", @"YT6801 有線網卡驅動" },
     [K_SUBTITLE]     = { @"Motorcomm YT6801 Gigabit Ethernet · DriverKit System Extension",
                          @"Motorcomm YT6801 千兆以太网 · DriverKit 系统扩展",
@@ -238,8 +238,8 @@ static NSString * kUiStrings[][3] = {
         @"我已閱讀並同意上述全部條款（完全免費 · GPL-2.0 開源授權）" },
     [K_BTN_AGREE]    = { @"Agree and Continue", @"同意并继续", @"同意並繼續" },
     [K_FMT_STATE_LINE] = { @"System version %1$@ · %2$@", @"系统版本 %1$@ · %2$@", @"系統版本 %1$@ · %2$@" },
-    [K_MENU_ABOUT]   = { @"About YT6801 Installer", @"关于 YT6801 安装器", @"關於 YT6801 安裝器" },
-    [K_MENU_QUIT]    = { @"Quit YT6801 Installer", @"退出 YT6801 安装器", @"結束 YT6801 安裝器" },
+    [K_MENU_ABOUT]   = { @"About YT6801 Installer", @"About YT6801 Installer", @"About YT6801 Installer" },
+    [K_MENU_QUIT]    = { @"Quit YT6801 Installer", @"Quit YT6801 Installer", @"Quit YT6801 Installer" },
     [K_LAUNCH_FAIL] = { @"Launch failed: %@", @"启动失败：%@", @"無法啟動：%@" },
     [K_REPLACING_EXT] = { @"Existing extension with same ID: old %@ -> new %@, replacing", @"检测到同 ID 扩展：旧 %@ → 新 %@，选择替换", @"偵測到同 ID 擴充功能：舊 %@ → 新 %@，選擇替換" },
     [K_NEED_APPROVAL_SYS] = { @"NEED_APPROVAL - approve in System Settings > General > Login Items & Extensions", @"NEED_APPROVAL 需要在「系统设置 > 通用 > 登录项与扩展」里批准", @"NEED_APPROVAL 需要在「系統設定 > 一般 > 登入項目與延伸功能」裡核准" },
@@ -1177,7 +1177,7 @@ licenseText(void)
 /* ---- Step 1: language picker (all three languages shown together) ---- */
 - (void)showLanguageStep
 {
-    [self.window setTitle:S(K_WINDOW_TITLE)];
+    [self.window setTitle:[NSString stringWithFormat:@"%@ %@", S(K_WINDOW_TITLE), kBuiltinVersion]];
     NSView * c = self.window.contentView;
     [c.subviews makeObjectsPerformSelector:@selector(removeFromSuperview)];
 
@@ -1281,7 +1281,7 @@ licenseText(void)
 - (void)buildMainWindow
 {
     [self.window setContentSize:NSMakeSize(720, 620)];
-    [self.window setTitle:S(K_WINDOW_TITLE)];
+    [self.window setTitle:[NSString stringWithFormat:@"%@ %@", S(K_WINDOW_TITLE), kBuiltinVersion]];
     NSView * c = self.window.contentView;
     [c.subviews makeObjectsPerformSelector:@selector(removeFromSuperview)];
     CGFloat W = 720;

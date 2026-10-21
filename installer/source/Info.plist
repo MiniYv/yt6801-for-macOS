@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>zh_CN</string>
 	<key>CFBundleDisplayName</key>
-	<string>YT6801 安装器</string>
+	<string>YT6801 Installer</string>
 	<key>CFBundleExecutable</key>
 	<string>YT6801Installer</string>
 	<key>CFBundleIdentifier</key>
