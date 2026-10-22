@@ -14,6 +14,7 @@ This driver is ported from the vendor's Linux driver for the same chip — the `
 - DMA descriptor rings backed by self-managed `IODMACommand` buffers
 - Link detection via periodic PHY polling (200 ms): cable pull/unplug is reported to macOS immediately, and the system can fall back to Wi-Fi
 - MAC speed auto-sync after renegotiation (10/100/1000 Mbit)
+- Gigabit line-rate throughput verified: **894 Mbps sustained download** (~95% of the TCP ceiling), zero retransmissions
 - MAC address read from EFUSE (with register and static fallbacks)
 - Hardware self-loopback self-test
 - Media type and vendor reporting (shows up as "Motorcomm YT6801 PCIe Gigabit Ethernet Controller")
@@ -32,6 +33,10 @@ This driver is ported from the vendor's Linux driver for the same chip — the `
 This machine runs the driver 24/7 with wired link, DHCP, unplug/fallback and sleep/wake all verified stable. **Other hardware and OS versions are untested** — the driver should work on any machine exposing a YT6801 (`1f0a:6801`) PCIe function, but results depend on your platform (PCIe wiring, BIOS, VTD setup).
 
 Found a problem? Please [open an issue](../../issues). Suggestions and corrections are welcome as pull requests.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) (English / 简体中文 / 繁體中文). Current release: **v1.0.7** — fixes a severe throughput bug present since v1.0 that capped transfers at ~1% of gigabit line rate. After the fix the driver sustains **894 Mbps download** (~95% of the TCP ceiling) on a gigabit link.
 
 ## Install
 

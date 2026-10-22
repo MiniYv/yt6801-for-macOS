@@ -67,7 +67,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete "${GITHUB_REF_NAME}" --yes 2>/dev/null || true
-          gh release create "${GITHUB_REF_NAME}" \
-            --title "YT6801 Ethernet Driver ${GITHUB_REF_NAME}" \
-            --generate-notes \
-            installer/dist/*.dmg installer/dist/*.zip
+          # Extract the section for this tag from CHANGELOG.md (falls back to auto-generated notes)
+          awk -v tag="${GITHUB_REF_NAME}" '
+            $0 ~ ("^## " tag "([ (]|$)") {flag=1; next}
+            /^## / {flag=0}
+            flag {print}
+          ' CHANGELOG.md > release_notes.md || true
+          ARGS=(--title "YT6801 Ethernet Driver ${GITHUB_REF_NAME}")
+          if [ -s release_notes.md ]; then
+            gh release create "${GITHUB_REF_NAME}" "${ARGS[@]}" \
+              --notes-file release_notes.md \
+              installer/dist/*.dmg installer/dist/*.zip
+          else
+            gh release create "${GITHUB_REF_NAME}" "${ARGS[@]}" \
+              --generate-notes \
+              installer/dist/*.dmg installer/dist/*.zip
+          fi
