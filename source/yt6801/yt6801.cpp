@@ -927,10 +927,23 @@ io_miniyv_yt6801ethernet::PollTimerOccurred_Impl(OSAction * action, uint64_t tim
     if ((iv->linkPollTick % (iv->loopbackActive ? 400u : 40u)) == 0) {
         pollLinkStatus();
     }
-    /* Re-arm regardless of datapath state, keep the 5ms heartbeat. */
+    /* Adaptive tick: 1 ms while RX traffic flows, 5 ms when idle.
+     * A fixed 5 ms tick adds ~2.5 ms average RX latency, which pins
+     * TCP throughput near window/RTT (~15 Mbps on a 1G link). */
+    uint64_t period;
+    if (iv->rxHarvested != 0) {
+        iv->pollIdle = 0;
+        period = 1000000ull;
+    } else if (++iv->pollIdle < 100u) {
+        period = 1000000ull;
+    } else {
+        period = 5000000ull;
+    }
+    iv->rxHarvested = 0;
+    /* Re-arm regardless of datapath state, keep the heartbeat. */
     (void)iv->pollTimer->WakeAtTime(
         kIOTimerClockUptimeRaw,
-        clock_gettime_nsec_np(CLOCK_UPTIME_RAW) + 5000000ull, 0);
+        clock_gettime_nsec_np(CLOCK_UPTIME_RAW) + period, 0);
 }
 
 /* Read SPEC_STATUS and report on change; triggered by MAC_ISR.PHYIS.

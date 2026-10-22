@@ -91,6 +91,8 @@ struct io_miniyv_yt6801ethernet_IVars {
     IOUserNetworkRxCompletionQueue * rxComplete;
     IOUserNetworkPacketPoller *      packetPoller;
     IOTimerDispatchSource *          pollTimer;
+    uint32_t                         rxHarvested;    /* frames harvested by the last serviceRx call */
+    uint32_t                         pollIdle;       /* consecutive idle poll ticks */
     bool                             netRegistered;
 
     /* ---- Interrupts and doorbells ---- */

@@ -468,6 +468,7 @@ io_miniyv_yt6801ethernet::serviceRx()
     }
 
     if (harvested > 0) {
+        iv->rxHarvested = harvested;
         /* Re-arm immediately or the hardware soon runs out of buffers. */
         refillRx();
     }
@@ -642,10 +643,11 @@ io_miniyv_yt6801ethernet::serviceTx()
     /* Take at most a full ring per call. */
     for (uint32_t n = 0; n < YT6801_TX_RING_DESC; n++) {
         if (tx_avail(iv) == 0) {
-            /* Bounded spin: reclaim while waiting (cap ~2ms). */
+            /* Short bounded spin (~300us); the 1ms poll timer re-runs
+             * serviceTx via reclaimTx if the ring is still full. */
             iv->txNoSpace++;
             bool freed = false;
-            for (int k = 0; k < 400; k++) {
+            for (int k = 0; k < 60; k++) {
                 reclaimTx();
                 if (tx_avail(iv) > 0) {
                     freed = true;
@@ -802,55 +804,6 @@ IMPL(io_miniyv_yt6801ethernet, TxDataAvailable)
     /* Harvest RX here as well: MSI-X may not be delivered, but the TX
      * doorbell fires per packet, so RX never stalls permanently. */
     serviceRx();
-
-    /* Real link only: a bounded receive window (cap 15ms, exit after idle). */
-    /* Diagnostic: first 4 doorbells, then every 32nd. */
-    if (ivars->datapathReady) {
-        if (ivars->doorbellCount <= 4 || (ivars->doorbellCount % 32) == 0) {
-            LOG("diag[%u] SR=0x%08x CATDR=0x%08x CARDR=0x%08x TCR=0x%08x "
-                "TDTR=0x%08x RDTR=0x%08x MAC_CR=0x%08x txHead=%u txClean=%u "
-                "rxPending=%u PFR=0x%08x",
-                ivars->doorbellCount,
-                reg_read(ivars, dma_ch_reg(DMA_CH_SR)),
-                reg_read(ivars, dma_ch_reg(DMA_CH_CATDR_LO)),
-                reg_read(ivars, dma_ch_reg(DMA_CH_CARDR_LO)),
-                reg_read(ivars, dma_ch_reg(DMA_CH_TCR)),
-                reg_read(ivars, dma_ch_reg(DMA_CH_TDTR_LO)),
-                reg_read(ivars, dma_ch_reg(DMA_CH_RDTR_LO)),
-                reg_read(ivars, MAC_CR),
-                ivars->txHead, ivars->txClean,
-                ivars->rxPending,
-                reg_read(ivars, MAC_PFR));
-
-            /* Real link only: MAC hardware RX counters (bypasses the DMA ring). */
-            if (!ivars->selfLoopMode) {
-                LOG("rx MMC_RX=%u crcErr=%u alignErr=%u runt=%u oversize=%u "
-                    "| MACA0=%08x/%08x PFR=%08x MAC_CR=%08x",
-                    reg_read(ivars, 0x0780),   /* MMC_RXFRAMECOUNT_GB */
-                    reg_read(ivars, 0x0794),   /* MMC_RXCRCERROR */
-                    reg_read(ivars, 0x0798),   /* MMC_RXALIGNERROR */
-                    reg_read(ivars, 0x07A0),   /* MMC_RXRUNTERROR */
-                    reg_read(ivars, 0x0790),   /* MMC_RXOVERSIZEFRAMES */
-                    reg_read(ivars, MAC_MACA0HR),
-                    reg_read(ivars, MAC_MACA0LR),
-                    reg_read(ivars, MAC_PFR),
-                    reg_read(ivars, MAC_CR));
-            }
-        }
-    }
-
-    if (!ivars->selfLoopMode && ivars->datapathReady) {
-        uint32_t idle = 0;
-        for (int i = 0; i < 1000; i++) {
-            uint32_t before = ivars->rxFrames;
-            IODelay(15);
-            serviceRx();
-            idle = (ivars->rxFrames == before) ? (idle + 1) : 0;
-            if (i > 133 && idle >= 32) {
-                break;
-            }
-        }
-    }
 }
 
 void
