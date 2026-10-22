@@ -65,6 +65,8 @@ struct io_miniyv_yt6801ethernet_IVars {
 
     /* ---- State ---- */
     bool           loopbackActive;
+    /* Timestamp (ns) of the current loopback-to-real probe window; 0 = not probing. */
+    uint64_t       loopbackProbeStart;
     /* Whether to put the PHY into loopback on this boot. Must be decided
      * before setupDatapath: once in loopback the link bit stays 0. */
     bool           wantLoopback;

@@ -1,5 +1,83 @@
 # Changelog
 
+## v1.0.8 — 2026-10-22
+
+### English
+
+**Fixed: wired interface stuck on a 169.254 address when the driver started without an active link**
+
+If the driver started while the wire was silent (cable not seated, or the switch
+port not yet up), it waited 30 s, ran the hardware self-test, and entered PHY
+loopback. Leaving loopback wrote `BMCR=0x9140` — bit15 is a soft reset — and the
+PHY came back as `0x0140`, i.e. **bit12 (auto-negotiation enable) cleared**. From
+that point the PHY was pinned to forced 100M, every 500 ms link probe was deaf,
+and a cable plugged in later could never be detected. The MAC kept looping DHCP
+frames internally, so the interface sat on a self-assigned `169.254.x.x` address
+while its link was reported "up" in self-loop mode.
+
+**Fix.**
+
+- Exiting loopback now writes `BMCR=0x1340` (bit9 restart auto-negotiation, no
+  soft reset), so auto-negotiation really restarts.
+- The loopback probe is non-blocking: it opens an 8 s window for
+  auto-negotiation instead of blocking 500 ms inside the poll timer, and only
+  re-enters loopback after that window expires.
+
+**Measured** (gigabit switch port, cable plugged after the driver was already up):
+
+- Link reaches **1000BASE-T full duplex in ~2.2 s** (2.0 s auto-negotiation plus
+  ≤200 ms poll interval); from loopback mode the worst case is ~4 s.
+- 3.5 min soak after re-plug: zero link flaps, 300/300 pings to the gateway,
+  0 % loss, 0 input/output errors, DHCP bound on the first attempt.
+
+### 简体中文
+
+**修复：驱动在无链路状态下启动后，有线接口卡在 169.254 地址**
+
+如果驱动启动时线上没有信号（网线没插到底，或交换机端口尚未起来），它会等满
+30 秒、跑完硬件自检后进入 PHY 回环。退出回环时写入 `BMCR=0x9140`——bit15 是软复位，
+PHY 回读成 `0x0140`，即 **bit12（自协商使能）被清掉**。从此 PHY 被钉死在强制
+100M，之后每 500ms 一次的链路探测全是聋的，晚插的网线永远发现不了；MAC 又把
+DHCP 报文关在内部回环里，于是接口停在自动分配的 `169.254.x.x`，而链路还以
+自环模式上报为"已连接"。
+
+**修复内容**
+
+- 退出回环改写 `BMCR=0x1340`（bit9 重启自协商，不置软复位位），自协商真正重启。
+- 回环探测改为非阻塞：开一个 8 秒的自协商窗口，不再在轮询定时器里阻塞 500ms，
+  窗口过期后才重新进回环。
+
+**实测**（千兆交换机端口，驱动已启动后才插线）
+
+- **约 2.2 秒**协商到 1000BASE-T 全双工（2.0 秒自协商 + ≤200ms 轮询）；若当时在
+  回环态，最坏约 4 秒。
+- 重插后连续 3.5 分钟：零链路翻转，ping 网关 300/300，丢包 0%，输入输出错误 0，
+  DHCP 一次绑上。
+
+### 繁體中文
+
+**修復：驅動在無鏈路狀態下啟動後，有線介面卡在 169.254 位址**
+
+如果驅動啟動時線上沒有訊號（網路線沒插到底，或交換器埠尚未起來），它會等滿
+30 秒、跑完硬體自我測試後進入 PHY 回環。退出回環時寫入 `BMCR=0x9140`——bit15 是軟復位，
+PHY 回讀成 `0x0140`，即 **bit12（自動協商啟用）被清除**。從此 PHY 被釘死在強制
+100M，之後每 500ms 一次的鏈路偵測全是聾的，晚插的網路線永遠發現不了；MAC 又把
+DHCP 封包關在內部回環裡，於是介面停在自動指派的 `169.254.x.x`，而鏈路還以
+自環模式回報為「已連線」。
+
+**修復內容**
+
+- 退出回環改寫 `BMCR=0x1340`（bit9 重啟自動協商，不置軟復位位），自動協商真正重啟。
+- 回環偵測改為非阻塞：開一個 8 秒的自動協商視窗，不再在輪詢計時器裡阻塞 500ms，
+  視窗過期後才重新進回環。
+
+**實測**（千兆交換器埠，驅動已啟動後才插線）
+
+- **約 2.2 秒**協商到 1000BASE-T 全雙工（2.0 秒自動協商 + ≤200ms 輪詢）；若當時在
+  回環態，最壞約 4 秒。
+- 重插後連續 3.5 分鐘：零鏈路翻轉，ping 閘道 300/300，丟包 0%，輸入輸出錯誤 0，
+  DHCP 一次綁上。
+
 ## v1.0.7 — 2026-10-22
 
 ### English

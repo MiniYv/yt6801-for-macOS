@@ -15,7 +15,9 @@
 
 /* ==================== Device identity ==================== */
 #define YT6801_DRV_NAME                 "yt6801"
-#define YT6801_DRV_VERSION              "1.4.3"
+#ifndef YT6801_DRV_VERSION
+#define YT6801_DRV_VERSION              "0.0.0"  /* build.sh injects the plist version */
+#endif
 #define YT6801_VENDOR_ID                0x1F0A  /* Motorcomm */
 #define YT6801_DEVICE_ID                0x6801
 /* PHY ID in the FIFO section below (0x4F51:0xE91A, YT8614) */
@@ -353,6 +355,9 @@
  *   0x9140 = restore: reset + auto-neg on + 1000M full duplex. */
 #define REG_MII_BMCR_ENABLE_LOOPBACK    0x8140
 #define REG_MII_BMCR_DISABLE_LOOPBACK   0x9140
+/* Leave loopback without a PHY soft reset (bit15 would restart auto-neg from
+ * scratch); bit9 asks for an immediate re-negotiation on the live wire. */
+#define REG_MII_BMCR_RESTORE_ANEG       0x1340
 
 /* No-cable self-test: force 100M full duplex + digital loopback + AN off.
  *   0x6100 = 0x4000(bit14 loopback) | 0x2000(bit13=1 -> 100M) | 0x0100(full duplex)

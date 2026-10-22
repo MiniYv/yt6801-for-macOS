@@ -57,6 +57,11 @@ fi
 
 mkdir -p "$GEN/$BUNDLE_ID" "$OBJ" "$DEXT/Contents/MacOS"
 
+# Runtime version string comes from the plist so the startup log and
+# CFBundleVersion can never drift apart.
+DRV_VER=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$SRC/Info.plist" 2>/dev/null)
+[ -n "$DRV_VER" ] || die "cannot read CFBundleVersion from $SRC/Info.plist"
+
 # ---------- Compile flags ----------
 # -isysroot must point to DriverKit.sdk itself, not MacOSX.sdk: the DriverKit
 # SDK is self-contained, and mixing in MacOSX.sdk/Kernel headers redefines
@@ -78,6 +83,7 @@ CFLAGS=(
     -Wno-deprecated-declarations      # those 10 pure-virtual methods are already marked __deprecated
     -Wno-nullability-completeness
     -Wno-unused-parameter
+    -DYT6801_DRV_VERSION="\"$DRV_VER\""
 )
 
 # ---------- 1. iig ----------

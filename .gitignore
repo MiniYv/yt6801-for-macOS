@@ -14,5 +14,9 @@ research
 logs/
 docs/wired-1.1.1.patch
 
+# not published yet
+docs/index.html
+docs/llms.txt
+
 # macOS noise
 .DS_Store

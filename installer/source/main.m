@@ -421,7 +421,7 @@ queryState(void)
         if ([raw rangeOfString:kExtID].location == NSNotFound) {
             continue;
         }
-        /* Format: *\t*\t-\tio.miniyv.yt6801ethernet (1.4.6/1.4.6)\tyt6801\t[activated enabled] */
+        /* Format: *\t*\t-\tio.miniyv.yt6801ethernet (X.Y.Z/X.Y.Z)\tyt6801\t[activated enabled] */
         BOOL starred = [raw hasPrefix:@"*"];
         NSString * line = raw;
 

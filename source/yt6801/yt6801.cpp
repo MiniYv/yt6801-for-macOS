@@ -846,16 +846,16 @@ io_miniyv_yt6801ethernet::exitPhyLoopback()
         return kIOReturnNotReady;
     }
 
-    /* Restore: ext registers first, then BMCR (reset + restart auto-neg). */
+    /* Restore: ext registers first, then BMCR (auto-neg restart, no soft reset). */
     yt_ext_write(iv, REG_MII_EXT_LPBK_REG, REG_MII_EXT_LPBK_REG_CLEAN_LOOPBACK);
     yt_ext_write(iv, REG_MII_EXT_SLEEP_CONTROL_REG, REG_MII_EXT_SLEEP_REG_CLEAN_LOOPBACK);
-    if (yt_mdio_write(iv, REG_MII_BMCR, REG_MII_BMCR_DISABLE_LOOPBACK) != 0) {
+    if (yt_mdio_write(iv, REG_MII_BMCR, REG_MII_BMCR_RESTORE_ANEG) != 0) {
         LOG("exit loopback failed: BMCR restore write failed");
         return kIOReturnIOError;
     }
     iv->loopbackActive = false;
     iv->loopbackWindowOpen = false;
-    yt_delay_us(20000);         /* 20ms for the PHY reset to finish */
+    yt_delay_us(20000);
     LOG("PHY loopback restored (BMCR=0x%04x)", REG_MII_BMCR_DISABLE_LOOPBACK);
     return kIOReturnSuccess;
 }
@@ -959,26 +959,44 @@ io_miniyv_yt6801ethernet::pollLinkStatus()
     }
 
     if (iv->loopbackActive) {
-        exitPhyLoopback();
-        if (!yt_wait_link(iv, 500)) {
-            /* Still no cable: restore loopback. */
-            (void)enterPhyLoopback();
+        uint64_t now = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
+
+        if (iv->loopbackProbeStart == 0) {
+            /* Open a probe window: leave loopback and let auto-neg run.
+             * The old code checked the link 500ms after a PHY soft reset, so a
+             * cable plugged in while in loopback could never be detected. */
+            if (exitPhyLoopback() != kIOReturnSuccess) {
+                return;
+            }
+            iv->loopbackProbeStart = now;
             return;
         }
-
-        /* Cable present: undo self-loop-mode leftovers. */
-        yt_set_bits(iv, MAC_CR, (1u << MAC_CR_LM_POS), false);
-        yt_set_bits(iv, MAC_PFR,
-                    (1u << MAC_PFR_PR_POS) | (1u << MAC_PFR_RA_POS), false);
-        iv->selfLoopMode = false;
-        {
-            uint32_t cr = 0, pfr = 0;
-            (void)yt_read32(iv, MAC_CR, &cr);
-            (void)yt_read32(iv, MAC_PFR, &pfr);
-            LOG("real link detected, exited loopback mode (MAC_CR=0x%08x PFR=0x%08x)", cr, pfr);
+        if (yt_read_link(iv, &ls) && ls.up) {
+            iv->loopbackProbeStart = 0;
+            /* Cable present: undo self-loop-mode leftovers. */
+            yt_set_bits(iv, MAC_CR, (1u << MAC_CR_LM_POS), false);
+            yt_set_bits(iv, MAC_PFR,
+                        (1u << MAC_PFR_PR_POS) | (1u << MAC_PFR_RA_POS), false);
+            iv->selfLoopMode = false;
+            {
+                uint32_t cr = 0, pfr = 0;
+                (void)yt_read32(iv, MAC_CR, &cr);
+                (void)yt_read32(iv, MAC_PFR, &pfr);
+                LOG("real link detected, exited loopback mode (MAC_CR=0x%08x PFR=0x%08x)", cr, pfr);
+            }
+            if (ls.speedMbps != 0) {
+                iv->linkSpeedMbps  = ls.speedMbps;
+                iv->linkFullDuplex = ls.fullDuplex;
+            }
+            (void)yt_sync_mac_speed_shared(iv);
+            reportLink(true);
+            return;
         }
-        (void)yt_sync_mac_speed_shared(iv);
-        reportLink(true);
+        if (now - iv->loopbackProbeStart >= 8000000000ull) {
+            /* Still no cable after 8s of auto-neg: restore loopback. */
+            iv->loopbackProbeStart = 0;
+            (void)enterPhyLoopback();
+        }
         return;
     }
 
@@ -1485,6 +1503,7 @@ IMPL(io_miniyv_yt6801ethernet, Start)
     }
 
     phyLinked = yt_wait_link(ivars, 30000);
+    ivars->loopbackProbeStart = 0;
     ivars->wantLoopback = !phyLinked;
     {
         YTLinkState ls;

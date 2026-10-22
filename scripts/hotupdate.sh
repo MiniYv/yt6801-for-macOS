@@ -39,7 +39,10 @@ pkill -f "yt6801_activate" 2>/dev/null
 pkill -f "keep_pending"    2>/dev/null
 
 # 1) Bump the version number - hard prerequisite for the REPLACE branch
-CUR=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST" 2>/dev/null || echo "1.0.5")
+CUR=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST" 2>/dev/null)
+# A stale fallback here would compute a version *below* the installed one and
+# sysextd would silently skip the replacement, so refuse to guess.
+[ -n "$CUR" ] || { red "cannot read CFBundleVersion from $PLIST"; exit 1; }
 # Two-component versions must bump the minor too: "1.0" -> "1.0" would leave
 # the version unchanged and sysextd silently skips the replacement.
 NEW=$(echo "$CUR" | awk -F. '{ if (NF>=3) printf "%s.%s.%d", $1,$2,$3+1;
