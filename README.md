@@ -8,7 +8,7 @@ A user-space DriverKit (DEXT) network driver for the **Motorcomm YT6801 PCIe Gig
 
 ## About this project
 
-**The Motorcomm YT6801 is the first consumer PCIe gigabit NIC chip from mainland China to reach mass production. This is the world's first open-source macOS driver for it. With it, a domestic wired NIC runs on macOS for the first time.**
+**The Motorcomm YT6801 is the first consumer PCIe gigabit NIC chip from mainland China to reach mass production. This is the world's first open-source macOS driver for it. With it, a domestic PCIe wired NIC runs on macOS for the first time.**
 
 The chip packs MAC, PHY and the PCIe controller into one 4×4 mm, 32-pin package on a single 3.3 V rail. Vendors use it in place of the Intel/Realtek part they used to buy, saving both BOM cost and board area. With the cost down, more laptops ship with one: MECHREVO, COLORFUL and TUXEDO all have current models (see *Hardware known to ship the YT6801*).
 
