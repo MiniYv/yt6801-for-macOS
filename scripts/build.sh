@@ -4,7 +4,9 @@
 #
 # No xcodebuild: toolchain is CommandLineTools clang++ plus DriverKit.sdk and
 # iig extracted from Xcode_26.2_Universal.xip (no Xcode install, no developer
-# account, no network provisioning).
+# account, no network provisioning). Target is driverkit24.2 so macOS 15.2+
+# loads the dext; the vendored SDK (26.x) is newer than the target, which is
+# fine for clang.
 #
 # Usage:
 #   ./scripts/build.sh            build + package + sign
@@ -36,7 +38,7 @@ NAME="yt6801"
 BUNDLE_ID="io.miniyv.yt6801ethernet"
 CLASS_NAME="io_miniyv_yt6801ethernet"
 
-TARGET="x86_64-apple-driverkit26.0"
+TARGET="x86_64-apple-driverkit24.2"
 SYSINC="$DKX/System/DriverKit/usr/include"
 FWROOT="$DKX/System/DriverKit/System/Library/Frameworks"
 
@@ -95,7 +97,7 @@ DYLD_LIBRARY_PATH="$CLT_LIB" "$IIGBIN" \
     --header "$GEN/$BUNDLE_ID/$CLASS_NAME.h" \
     --impl "$GEN/$NAME.iig.cpp" \
     --framework-name "$BUNDLE_ID" \
-    --deployment-target 25.0 \
+    --deployment-target 24.2 \
     -- \
     -D__IIG=1 \
     -isysroot "$DKX" \

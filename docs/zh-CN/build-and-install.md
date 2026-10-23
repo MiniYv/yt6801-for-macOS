@@ -3,7 +3,7 @@
 ## 前置条件
 
 - macOS 15.2+（构建实测于 macOS 26），Intel x86_64
-- Xcode 26 与 DriverKit 26 SDK（`xcrun -sdk driverkit26.0 --show-sdk-path`）
+- Xcode 与 DriverKit 24.2 或更新 SDK（`xcrun -sdk driverkit24.2 --show-sdk-path`）
 - 不需要苹果开发者账号：dext 使用 ad-hoc 签名
 
 ## 构建驱动

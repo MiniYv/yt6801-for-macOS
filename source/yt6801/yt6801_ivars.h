@@ -65,11 +65,6 @@ struct io_miniyv_yt6801ethernet_IVars {
 
     /* ---- State ---- */
     bool           loopbackActive;
-    /* Timestamp (ns) of the current loopback-to-real probe window; 0 = not probing. */
-    uint64_t       loopbackProbeStart;
-    /* Whether to put the PHY into loopback on this boot. Must be decided
-     * before setupDatapath: once in loopback the link bit stays 0. */
-    bool           wantLoopback;
     bool           hardwareReady;
     /* Latest PHY negotiation result; MAC speed/duplex follows it. */
     uint32_t       linkSpeedMbps;
@@ -94,6 +89,7 @@ struct io_miniyv_yt6801ethernet_IVars {
     IOUserNetworkPacketPoller *      packetPoller;
     IOTimerDispatchSource *          pollTimer;
     uint32_t                         rxHarvested;    /* frames harvested by the last serviceRx call */
+    uint32_t                         rxIdleChecks;   /* consecutive serviceRx calls with nothing harvested */
     uint32_t                         pollIdle;       /* consecutive idle poll ticks */
     bool                             netRegistered;
 
@@ -177,7 +173,6 @@ struct io_miniyv_yt6801ethernet_IVars {
     uint32_t       rxFakeFrames;    /* ghost frames rejected (short PL or EtherType 0) */
     uint32_t       rxFakeLogged;    /* ghost frames logged, capped at 4 */
     uint32_t       irqCount;        /* hardware interrupts delivered */
-    bool           selfLoopMode;    /* no cable: PHY loopback held, link reported UP */
 
     /* ---- Loopback self-test result bitmap, 0 = all passed ---- */
     uint64_t       loopbackResult;

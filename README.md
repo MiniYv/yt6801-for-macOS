@@ -145,7 +145,7 @@ More details: [docs/en/build-and-install.md](docs/en/build-and-install.md) · Do
 
 ## Build from source
 
-Requirements: macOS with Xcode 26 (DriverKit 26 SDK), plus a vendored copy of the DriverKit SDK.
+Requirements: macOS with Xcode (DriverKit 24.2 SDK or newer), plus a vendored copy of the DriverKit SDK.
 
 ```
 ./scripts/build.sh        # compile + sign the dext into dist/

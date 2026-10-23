@@ -658,8 +658,8 @@ yt_phy_loopback_test(YT * iv, uint64_t * result)
     }
 
     /* --- Unconditional restore --- */
-    if (yt_mdio_write(iv, REG_MII_BMCR, REG_MII_BMCR_DISABLE_LOOPBACK) == 0) {
-        LOG("loopback off BMCR=0x%04x", REG_MII_BMCR_DISABLE_LOOPBACK);
+    if (yt_mdio_write(iv, REG_MII_BMCR, REG_MII_BMCR_RESTORE_ANEG) == 0) {
+        LOG("loopback off BMCR=0x%04x", REG_MII_BMCR_RESTORE_ANEG);
     } else {
         LOG("warning: failed to disable loopback");
         bits |= (1ull << 4);
@@ -846,7 +846,9 @@ io_miniyv_yt6801ethernet::exitPhyLoopback()
         return kIOReturnNotReady;
     }
 
-    /* Restore: ext registers first, then BMCR (auto-neg restart, no soft reset). */
+    /* Restore: ext registers first, then BMCR (auto-neg restart, no soft
+     * reset). Never write a bit15 soft-reset value here: the PHY eats bit12
+     * (auto-neg enable) on reset and comes back pinned to forced 100M. */
     yt_ext_write(iv, REG_MII_EXT_LPBK_REG, REG_MII_EXT_LPBK_REG_CLEAN_LOOPBACK);
     yt_ext_write(iv, REG_MII_EXT_SLEEP_CONTROL_REG, REG_MII_EXT_SLEEP_REG_CLEAN_LOOPBACK);
     if (yt_mdio_write(iv, REG_MII_BMCR, REG_MII_BMCR_RESTORE_ANEG) != 0) {
@@ -856,7 +858,7 @@ io_miniyv_yt6801ethernet::exitPhyLoopback()
     iv->loopbackActive = false;
     iv->loopbackWindowOpen = false;
     yt_delay_us(20000);
-    LOG("PHY loopback restored (BMCR=0x%04x)", REG_MII_BMCR_DISABLE_LOOPBACK);
+    LOG("PHY loopback restored (BMCR=0x%04x)", REG_MII_BMCR_RESTORE_ANEG);
     return kIOReturnSuccess;
 }
 
@@ -870,12 +872,9 @@ io_miniyv_yt6801ethernet::reportLink(bool up)
         return;
     }
 
-    /* Report the negotiated speed/duplex; self-loop mode reports 1000M. */
+    /* Report the negotiated speed/duplex from the PHY. */
     MediaWord media;
-    if (iv->selfLoopMode) {
-        media = (MediaWord)(kIOUserNetworkMediaEthernet1000BaseT
-                          | kIOUserNetworkMediaOptionFullDuplex);
-    } else {
+    {
         YTLinkState ls;
         (void)yt_read_link(iv, &ls);
         if (ls.up && ls.speedMbps != 0) {
@@ -904,8 +903,7 @@ io_miniyv_yt6801ethernet::reportLink(bool up)
 
     iv->linkUp = up;
     iv->linkReports++;
-    LOG("link %{public}s (media=0x%x %{public}s rc=0x%x)", up ? "UP" : "DOWN", media,
-        iv->selfLoopMode ? "self-loop mode" : "real link", ret);
+    LOG("link %{public}s (media=0x%x real link rc=0x%x)", up ? "UP" : "DOWN", media, ret);
 }
 
 /* Poll timer: reclaim TX + service RX, then re-arm the 5ms tick. */
@@ -921,10 +919,9 @@ io_miniyv_yt6801ethernet::PollTimerOccurred_Impl(OSAction * action, uint64_t tim
         serviceRx();
     }
     /* Periodic link check: PHYIS never fires (no working interrupts), so
-     * the 5ms tick drives link detection. Cheap SPEC_STATUS read; the
-     * loopback probe (exit/wait/re-enter) runs at a slower 2s rate. */
+     * the 5ms tick drives link detection. Cheap SPEC_STATUS read. */
     iv->linkPollTick++;
-    if ((iv->linkPollTick % (iv->loopbackActive ? 400u : 40u)) == 0) {
+    if ((iv->linkPollTick % 40u) == 0) {
         pollLinkStatus();
     }
     /* Adaptive tick: 1 ms while RX traffic flows, 5 ms when idle.
@@ -946,8 +943,7 @@ io_miniyv_yt6801ethernet::PollTimerOccurred_Impl(OSAction * action, uint64_t tim
         clock_gettime_nsec_np(CLOCK_UPTIME_RAW) + period, 0);
 }
 
-/* Read SPEC_STATUS and report on change; triggered by MAC_ISR.PHYIS.
- * While loopback is active: exit first, re-enter if still no cable. */
+/* Read SPEC_STATUS and report on change; triggered by MAC_ISR.PHYIS. */
 void
 io_miniyv_yt6801ethernet::pollLinkStatus()
 {
@@ -955,48 +951,6 @@ io_miniyv_yt6801ethernet::pollLinkStatus()
     YTLinkState ls;
 
     if (iv == nullptr || !iv->netRegistered || !iv->pciOpened) {
-        return;
-    }
-
-    if (iv->loopbackActive) {
-        uint64_t now = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
-
-        if (iv->loopbackProbeStart == 0) {
-            /* Open a probe window: leave loopback and let auto-neg run.
-             * The old code checked the link 500ms after a PHY soft reset, so a
-             * cable plugged in while in loopback could never be detected. */
-            if (exitPhyLoopback() != kIOReturnSuccess) {
-                return;
-            }
-            iv->loopbackProbeStart = now;
-            return;
-        }
-        if (yt_read_link(iv, &ls) && ls.up) {
-            iv->loopbackProbeStart = 0;
-            /* Cable present: undo self-loop-mode leftovers. */
-            yt_set_bits(iv, MAC_CR, (1u << MAC_CR_LM_POS), false);
-            yt_set_bits(iv, MAC_PFR,
-                        (1u << MAC_PFR_PR_POS) | (1u << MAC_PFR_RA_POS), false);
-            iv->selfLoopMode = false;
-            {
-                uint32_t cr = 0, pfr = 0;
-                (void)yt_read32(iv, MAC_CR, &cr);
-                (void)yt_read32(iv, MAC_PFR, &pfr);
-                LOG("real link detected, exited loopback mode (MAC_CR=0x%08x PFR=0x%08x)", cr, pfr);
-            }
-            if (ls.speedMbps != 0) {
-                iv->linkSpeedMbps  = ls.speedMbps;
-                iv->linkFullDuplex = ls.fullDuplex;
-            }
-            (void)yt_sync_mac_speed_shared(iv);
-            reportLink(true);
-            return;
-        }
-        if (now - iv->loopbackProbeStart >= 8000000000ull) {
-            /* Still no cable after 8s of auto-neg: restore loopback. */
-            iv->loopbackProbeStart = 0;
-            (void)enterPhyLoopback();
-        }
         return;
     }
 
@@ -1503,8 +1457,6 @@ IMPL(io_miniyv_yt6801ethernet, Start)
     }
 
     phyLinked = yt_wait_link(ivars, 30000);
-    ivars->loopbackProbeStart = 0;
-    ivars->wantLoopback = !phyLinked;
     {
         YTLinkState ls;
         if (yt_read_link(ivars, &ls) && ls.up) {
@@ -1526,17 +1478,7 @@ IMPL(io_miniyv_yt6801ethernet, Start)
     /* Key decision log line. */
     LOG("start link decision: %{public}s (wait limit 30s)",
         phyLinked ? "real link, normal datapath"
-                  : "no link -> self-loop branch");
-
-    if (!phyLinked) {
-        /* No cable: run the control-path self-test. */
-        ret = yt_phy_loopback_test(ivars, &ivars->loopbackResult);
-        LOG("Loopback test %{public}s (result=0x%llx)",
-            ret == kIOReturnSuccess ? "passed" : "failed",
-            (unsigned long long)ivars->loopbackResult);
-        /* Re-apply analog front-end config (self-test soft resets wipe it). */
-        (void)yt_phy_analog_init(ivars);
-    }
+                  : "no link -> report DOWN, link polled while runtime");
 
     /* Register with the network stack; the enX interface appears after
      * this. Failure is not fatal: only the datapath is missing. */
@@ -1550,10 +1492,7 @@ IMPL(io_miniyv_yt6801ethernet, Start)
         if (ret != kIOReturnSuccess) {
             LOG("datapath init failed 0x%x (control path still usable)", ret);
         } else {
-            /* No cable: self-loop verification mode (PHY digital loopback,
-             * link reported UP). */
             if (phyLinked) {
-                ivars->selfLoopMode = false;
                 /* Real link: open all receive filters (PR|RA). */
                 {
                     uint32_t pfr = 0;
@@ -1565,12 +1504,9 @@ IMPL(io_miniyv_yt6801ethernet, Start)
                     LOG("real link: receive filters opened PFR=0x%08x (PR|RA)", back);
                 }
                 reportLink(true);
-            } else if (ivars->loopbackActive) {
-                ivars->selfLoopMode = true;
-                LOG("no cable: PHY kept in digital loopback, link reported 1000M full duplex (self-loop mode)");
-                reportLink(true);
             } else {
-                /* No link and no loopback: report DOWN honestly. */
+                /* No cable: report DOWN honestly; the poll timer picks the
+                 * link up as soon as a cable is plugged. */
                 reportLink(false);
             }
         }
@@ -1598,7 +1534,7 @@ IMPL(io_miniyv_yt6801ethernet, Stop)
 {
     if (ivars != nullptr) {
         if (ivars->loopbackActive) {
-            yt_mdio_write(ivars, REG_MII_BMCR, REG_MII_BMCR_DISABLE_LOOPBACK);
+            yt_mdio_write(ivars, REG_MII_BMCR, REG_MII_BMCR_RESTORE_ANEG);
             ivars->loopbackActive = false;
         }
         /* Datapath first (stop DMA, return packets, free rings), then queues and pool. */

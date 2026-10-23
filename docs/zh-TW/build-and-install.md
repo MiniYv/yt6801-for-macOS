@@ -3,7 +3,7 @@
 ## 前置條件
 
 - macOS 15.2+（建置實測於 macOS 26），Intel x86_64
-- Xcode 26 與 DriverKit 26 SDK（`xcrun -sdk driverkit26.0 --show-sdk-path`）
+- Xcode 與 DriverKit 24.2 或更新 SDK（`xcrun -sdk driverkit24.2 --show-sdk-path`）
 - 不需要蘋果開發者帳號：dext 使用 ad-hoc 簽名
 
 ## 建置驅動

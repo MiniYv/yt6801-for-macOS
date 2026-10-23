@@ -145,7 +145,7 @@ ad-hoc 签名。SIP 开启的白苹果会拒绝加载。要让它加载需要 De
 
 ## 从源码构建
 
-依赖：装有 Xcode 26（含 DriverKit 26 SDK）的 macOS，以及一份 DriverKit SDK 副本。
+依赖：装有 Xcode（含 DriverKit 24.2 或更新 SDK）的 macOS，以及一份 DriverKit SDK 副本。
 
 ```
 ./scripts/build.sh        # 编译 + 签名，产物在 dist/

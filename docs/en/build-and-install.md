@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - macOS 15.2+ (build tested on macOS 26), Intel x86_64
-- Xcode 26 with the DriverKit 26 SDK (`xcrun -sdk driverkit26.0 --show-sdk-path`)
+- Xcode with the DriverKit 24.2 SDK or newer (`xcrun -sdk driverkit24.2 --show-sdk-path`)
 - No Apple Developer account required: the dext is ad-hoc signed
 
 ## Build the driver

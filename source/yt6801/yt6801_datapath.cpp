@@ -80,6 +80,12 @@ ring_next(uint32_t i, uint32_t count)
     return (i + 1) & (count - 1);   /* count is a power of two */
 }
 
+static inline uint32_t
+ring_prev(uint32_t i, uint32_t count)
+{
+    return (i + count - 1) & (count - 1);
+}
+
 /*
  * Allocate device-visible, CPU-writable memory and provide three things:
  * CPU virtual address (write descriptors), device physical address
@@ -293,6 +299,17 @@ rx_arm_descriptor(YT * iv, uint32_t i, IOUserNetworkPacket * pkt)
     iv->rxPackets[i] = pkt;
 }
 
+/* RDTR must hold the descriptor just armed (inclusive tail), matching
+ * the vendor driver's "last cleaned entry". The ring is page-aligned so
+ * the low 32 bits are enough; the high bits come from RDLR_HI. */
+static void
+pushRxTail(YT * iv)
+{
+    uint32_t last = ring_prev(iv->rxArm, YT6801_RX_RING_DESC);
+    uint64_t tail = iv->rxRingPhys + (uint64_t)last * YT6801_DESC_SIZE;
+    reg_write(iv, dma_ch_reg(DMA_CH_RDTR_LO), (uint32_t)(tail & 0xFFFFFFFFull));
+}
+
 /* Refill empty ring slots from rxFree.
  * Full/empty is tracked with the explicit rxPending counter. */
 void
@@ -306,7 +323,9 @@ io_miniyv_yt6801ethernet::refillRx()
 
     uint32_t armed = 0;
 
-    /* Keep at least one free slot (a wrapped tail reads as an empty ring). */
+    /* Keep one slot free: a full ring makes the tail land behind CARDR
+     * (tail = rxArm-1 = CARDR-1), the hardware stops for good and no
+     * buffer ever comes back. */
     while (iv->rxFreeCount > 0 && iv->rxPending < YT6801_RX_RING_DESC - 1) {
         IOUserNetworkPacket * pkt = iv->rxFree[--iv->rxFreeCount];
         rx_arm_descriptor(iv, iv->rxArm, pkt);
@@ -315,12 +334,11 @@ io_miniyv_yt6801ethernet::refillRx()
         armed++;
     }
 
-    /* New descriptors armed: push the tail pointer so hardware resumes. */
+    /* RDTR is the last descriptor handed over, not the next free one:
+     * writing rxArm makes the hardware stop one slot early every time
+     * (CARDR ends up RDTR+16, SR reports RPS). */
     if (armed != 0) {
-        uint64_t tail = iv->rxRingPhys + (uint64_t)iv->rxArm * YT6801_DESC_SIZE;
-        /* Only RDTR_LO exists: the high bits come from RDLR_HI, and the
-         * 4 KB ring is page-aligned so it never crosses a 4GB boundary. */
-        reg_write(iv, dma_ch_reg(DMA_CH_RDTR_LO), (uint32_t)(tail & 0xFFFFFFFFull));
+        pushRxTail(iv);
     }
 }
 
@@ -469,8 +487,30 @@ io_miniyv_yt6801ethernet::serviceRx()
 
     if (harvested > 0) {
         iv->rxHarvested = harvested;
+        iv->rxIdleChecks = 0;
         /* Re-arm immediately or the hardware soon runs out of buffers. */
         refillRx();
+    } else if (iv->rxPending == 0) {
+        /* Everything was harvested and nothing re-armed: wake the ring. */
+        refillRx();
+        if (++iv->rxIdleChecks >= 400) {
+            iv->rxIdleChecks = 0;
+            LOG("rx stalled: pending=0 free=%u CARDR=0x%08x RDTR=0x%08x SR=0x%08x",
+                iv->rxFreeCount,
+                reg_read(iv, dma_ch_reg(DMA_CH_CARDR_LO)),
+                reg_read(iv, dma_ch_reg(DMA_CH_RDTR_LO)),
+                reg_read(iv, dma_ch_reg(DMA_CH_SR)));
+        }
+    } else if (++iv->rxIdleChecks >= 400) {
+        /* Buffers armed but the hardware wrote nothing for ~2s. Re-writing
+         * the tail restarts a receive process stopped by RPS/RU. */
+        iv->rxIdleChecks = 0;
+        pushRxTail(iv);
+        LOG("rx idle: pending=%u free=%u CARDR=0x%08x RDTR=0x%08x SR=0x%08x",
+            iv->rxPending, iv->rxFreeCount,
+            reg_read(iv, dma_ch_reg(DMA_CH_CARDR_LO)),
+            reg_read(iv, dma_ch_reg(DMA_CH_RDTR_LO)),
+            reg_read(iv, dma_ch_reg(DMA_CH_SR)));
     }
 }
 
@@ -507,16 +547,14 @@ yt_set_mac_speed(YT * iv, uint32_t speed_mbps, bool full_duplex)
     reg_write(iv, MAC_CR, v);
 }
 
-/* Configure the MAC-side speed from the current link.
- * Self-loop mode is fixed 1000M full duplex; a real link follows the
- * PHY negotiation result. */
+/* Configure the MAC-side speed from the current PHY link. */
 static uint32_t
 yt_sync_mac_speed(YT * iv, bool * fullOut)
 {
     uint32_t spd = iv->linkSpeedMbps;
     bool full = iv->linkFullDuplex;
 
-    if (iv->selfLoopMode || spd == 0) {
+    if (spd == 0) {
         spd = 1000;
         full = true;
     }
@@ -1422,14 +1460,10 @@ io_miniyv_yt6801ethernet::enableDatapath(bool enable)
                   | (1u << DMA_CH_TCR_ST_POS) | (1u << DMA_CH_TCR_OSF_POS));
         IODelay(1000);
 
-        /* The RX tail pointer must be pushed again after the channel
-         * started: starting RX resets CARDR and RDTR back to the ring
-         * base, and CARDR == RDTR means "ring empty" in DWC semantics —
-         * the hardware fetches nothing. Re-push by rxArm so the tail
-         * leads CARDR. */
-        reg_write(iv, dma_ch_reg(DMA_CH_RDTR_LO),
-                  (uint32_t)((iv->rxRingPhys + (uint64_t)iv->rxArm * YT6801_DESC_SIZE)
-                             & 0xFFFFFFFFull));
+        /* Starting RX resets CARDR and RDTR to the ring base, and
+         * CARDR == RDTR means "ring empty": the tail must be pushed
+         * again, pointing at the last armed descriptor. */
+        pushRxTail(iv);
 
         LOG("channel started: TDLR=0x%08x TDRLR=%u TCR=0x%08x RCR=0x%08x SR=0x%08x "
             "RDTR=0x%08x (rxArm=%u)",
@@ -1461,22 +1495,6 @@ io_miniyv_yt6801ethernet::enableDatapath(bool enable)
 
         reg_write(iv, MAC_CR, reg_read(iv, MAC_CR)
                   | (1u << MAC_CR_RE_POS) | (1u << MAC_CR_TE_POS));
-
-        /* Self-loop verification mode: enable the MAC internal loopback
-         * bit. Without a cable the PHY has no line clock, so the PHY
-         * digital loopback alone never lights the link bit; MAC internal
-         * loopback ties TX to RX inside the MAC. Never set with a real
-         * link. */
-        if (iv->selfLoopMode) {
-            reg_write(iv, MAC_CR, reg_read(iv, MAC_CR) | (1u << MAC_CR_LM_POS));
-            /* Open MAC filtering in self-loop mode: no peer, no multicast
-             * hash table, so multicast frames would be dropped by DA
-             * filtering and MMC RX would not match MMC TX. */
-            reg_write(iv, MAC_PFR, reg_read(iv, MAC_PFR)
-                      | (1u << MAC_PFR_PR_POS) | (1u << MAC_PFR_RA_POS));
-            LOG("self-loop mode: MAC internal loopback on MAC_CR=0x%08x PFR=0x%08x",
-                reg_read(iv, MAC_CR), reg_read(iv, MAC_PFR));
-        }
 
         /* Only the PHY status change interrupt is needed; the other MAC
          * interrupts (timestamp, LPI, PMT) are unused. */
@@ -1805,64 +1823,21 @@ io_miniyv_yt6801ethernet::setupDatapath()
         goto fail;
     }
 
-    /* ---- 4. Real-machine loopback self-test (only with no cable) ----
-     * Must run before the ring is fully armed: the test monopolizes
-     * descriptor 0 and clears both rings afterwards. Failure is not
-     * fatal. Skipped entirely with a real link, since putting the PHY
-     * into loopback would tear down negotiation. */
-    if (iv->wantLoopback) {
-        uint64_t lbBits = ~0ull;
-        ret = enterPhyLoopback();
-        if (ret == kIOReturnSuccess) {
-            (void)runHardwareLoopbackTest(&lbBits);
-            /* Loopback window stays open for stack-sent verification. */
-        } else {
-            LOG("enter PHY loopback failed 0x%x, skipping hw loopback test", ret);
-        }
-        ret = kIOReturnSuccess;     /* self-test result does not block the datapath */
-
-        /* ---- 4b. Align the driver cursors with the hardware's current
-         * descriptor pointer ----
-         * DWC's RX current-descriptor pointer does not return to the
-         * ring base after the channel stopped. The self-test consumed
-         * descriptor 0, so start harvesting where the hardware stopped
-         * instead of at 0 — otherwise descriptor 0 stays OWN=1 forever
-         * and serviceRx breaks on the first entry. Skipped when the
-         * self-test did not run (CARDR would be 0). */
-        {
-            uint32_t cur = reg_read(iv, dma_ch_reg(DMA_CH_CARDR_LO));
-            uint32_t off = cur - (uint32_t)(iv->rxRingPhys & 0xFFFFFFFFull);
-            uint32_t idx = (off / YT6801_DESC_SIZE) & (YT6801_RX_RING_DESC - 1);
-
-            for (uint32_t i = 0; i < YT6801_RX_RING_DESC * YT6801_DESC_WORDS; i++) {
-                iv->rxDesc[i] = 0;
-            }
-            OSSynchronizeIO();
-
-            iv->rxClean = idx;
-            iv->rxArm   = idx;
-            iv->rxPending = 0;
-            LOG("post-test cursor align: CARDR=0x%08x -> descriptor %u (ring base 0x%08x)",
-                cur, idx, (uint32_t)(iv->rxRingPhys & 0xFFFFFFFFull));
-        }
-    } else {
-        /* Real link: the ring is untouched; clear and start at 0. */
-        for (uint32_t i = 0; i < YT6801_RX_RING_DESC * YT6801_DESC_WORDS; i++) {
-            iv->rxDesc[i] = 0;
-        }
-        OSSynchronizeIO();
-        iv->rxClean = 0;
-        iv->rxArm   = 0;
-        iv->rxPending = 0;
-        LOG("real link mode: skipping loopback test, RX cursor starts at 0");
+    /* ---- 4. RX descriptors: clear and start at 0. The channel is
+     * restarted by enableDatapath, which resets CARDR to slot 0; arming
+     * from slot 0 keeps the hardware fetch and the driver cursor in
+     * step. ---- */
+    for (uint32_t i = 0; i < YT6801_RX_RING_DESC * YT6801_DESC_WORDS; i++) {
+        iv->rxDesc[i] = 0;
     }
+    OSSynchronizeIO();
+    iv->rxClean = 0;
+    iv->rxArm   = 0;
+    iv->rxPending = 0;
 
-    /* ---- 5. Initial RX buffers: arm up to the ring capacity ----
-     * Do not infer "how many armed" from rxArm: a full ring wraps rxArm
-     * to 0, indistinguishable from none armed. Two slots are left free
-     * (126 armed): arming 127 wraps the tail pointer onto the ring base,
-     * and CARDR == RDTR means "ring empty" in DWC semantics — the
-     * hardware fetches nothing. */
+    /* ---- 5. Initial RX buffers: arm all but one slot ----
+     * Do not infer "how many armed" from rxArm: arming the last slot
+     * wraps rxArm back to 0, indistinguishable from none armed. */
     {
         uint32_t armed = 0;
         /* Force arming from slot 0: enableDatapath restarts the channel,
@@ -1871,7 +1846,7 @@ io_miniyv_yt6801ethernet::setupDatapath()
         iv->rxArm = 0;
         iv->rxClean = 0;
         iv->rxPending = 0;
-        for (uint32_t n = 0; n < YT6801_RX_RING_DESC - 2; n++) {
+        for (uint32_t n = 0; n < YT6801_RX_RING_DESC - 1; n++) {
             IOUserNetworkPacket * pkt = nullptr;
             if (iv->pool->allocatePacket(&pkt) != kIOReturnSuccess || pkt == nullptr) {
                 LOG("RX initial arm got only %u/%u packets, pool too small or busy", n, YT6801_RX_RING_DESC);
@@ -1890,15 +1865,9 @@ io_miniyv_yt6801ethernet::setupDatapath()
             goto fail;
         }
 
-        /* The tail pointer must sit at "one past the last armed
-         * descriptor" (rxArm here), which differs from CARDR=0, so the
-         * hardware accepts this round of descriptors. */
-        {
-            uint64_t tail = iv->rxRingPhys + (uint64_t)iv->rxArm * YT6801_DESC_SIZE;
-            reg_write(iv, dma_ch_reg(DMA_CH_RDTR_LO), (uint32_t)(tail & 0xFFFFFFFFull));
-        }
+        pushRxTail(iv);
         LOG("RX ring armed %u buffers, tail pushed to descriptor %u (must differ from CARDR=0)",
-            armed, iv->rxArm);
+            armed, ring_prev(iv->rxArm, YT6801_RX_RING_DESC));
     }
 
     /* ---- 6. Interrupts ---- */

@@ -2,36 +2,35 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleName</key>
-	<string>YT6801Driver</string>
-	<key>CFBundleDisplayName</key>
-	<string>YT6801 Ethernet Driver</string>
-	<key>CFBundleIdentifier</key>
-	<string>io.miniyv.yt6801host</string>
-	<key>CFBundleExecutable</key>
-	<string>yt6801host</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>CFBundleVersion</key>
-	<string>1.0.8</string>
-	<key>CFBundleShortVersionString</key>
-	<string>1.0.8</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>YT6801 Ethernet Driver</string>
+	<key>CFBundleExecutable</key>
+	<string>yt6801host</string>
+	<key>CFBundleIdentifier</key>
+	<string>io.miniyv.yt6801host</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>YT6801Driver</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.1</string>
+	<key>CFBundleVersion</key>
+	<string>1.0.9</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
-	<key>NSHighResolutionCapable</key>
-	<true/>
-	<key>NSPrincipalClass</key>
-	<string>NSApplication</string>
-	<!-- Background agent: no Dock icon, no Launchpad entry, no window on launch -->
 	<key>LSUIElement</key>
 	<true/>
-	<key>NSSystemExtensionUsageDescription</key>
-	<string>YT6801 Ethernet driver needs to install a system extension to work.</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>Free under GPL-2.0 · Copyright (c) 2026 MiniYv</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>NSSystemExtensionUsageDescription</key>
+	<string>YT6801 Ethernet driver needs to install a system extension to work.</string>
 </dict>
 </plist>
