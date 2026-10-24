@@ -40,7 +40,7 @@ This driver is ported from the vendor's Linux driver for the same chip, the `fux
 ## Tested hardware and current status
 
 - **Mechrevo Jiaolong 16 Pro (Youwan Qingchun edition)**: Ryzen 9 8940HX + RTX 5060, Hackintosh
-- **Mechrevo Yaoshi 16 Pro**: i7-14650HX + RTX 4070, Hackintosh — tested by a second user on the exact same OS build and driver version; the activation failure hit on this machine is what v1.0.13 fixes
+- **Mechrevo Yaoshi 16 Pro**: i7-14650HX + RTX 4070, Hackintosh — tested by another user on the same OS build; activation issues came up in testing, and v1.0.13 fixed part of them
 - Tested OS: **macOS 26.7.1 (Tahoe)**
 
 **Status: usable, not yet proven.** This machine runs the driver daily over a wired link; DHCP, unplug/fallback and sleep/wake have all been exercised on it. That is not a stability guarantee. The first v1.0 carried more defects than anyone caught at the time and **was not actually stable**. Real use is what surfaced them: throughput pinned at ~1% of line rate first, then a link deadlock after a start without an active link. Today's build is considerably more usable; long-run behaviour is still the least tested part. A working driver, not a finished one.
@@ -54,7 +54,7 @@ This driver is ported from the vendor's Linux driver for the same chip, the `fux
 | COLORFUL 七彩虹 | 将星 X16 Pro (i7-14650HX + RTX 5060) | Teardown report identifies 裕太微 YT6801 as the LAN controller |
 | MECHREVO 机械革命 | 蛟龙16Pro: R9-9955HX and 潮玩青春版 R9-8940HX | Reported via `lspci`; the 8940HX unit is the machine this driver was written on |
 | MECHREVO 机械革命 | 极光X (GM6PR0C)、极光X 潮玩版、耀世15Pro | Owner reports; the vendor INF carries subsystem `139A:1D05` for 极光X |
-| MECHREVO 机械革命 | 耀世16Pro (i7-14650HX + RTX 4070) | Owner-confirmed working with this driver on macOS 26.7.1 (see *Tested hardware*); v1.0.13 fixes the activation issue found on it |
+| MECHREVO 机械革命 | 耀世16Pro (i7-14650HX + RTX 4070) | Owner-confirmed working; v1.0.13 fixed part of the issues found on it |
 | MECHREVO 机械革命 | 无界14X / WUJIE14X(A) | ArchWiki hardware table lists Ethernet `1f0a:6801` as working |
 | TUXEDO | InfinityBook Pro 14 Gen9 (AMD), InfinityBook Pro 15 Gen10 | TUXEDO's own FAQ names the Motorcomm YT6801 and ships `tuxedo-yt6801` |
 | Acer | unnamed models | Vendor INF: subsystem vendor `1025` (`1739`, `173C`, `1947`, `194F`) |
