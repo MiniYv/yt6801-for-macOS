@@ -89,7 +89,7 @@
 不支持。dext 只编了 x86_64，而且没有哪台 M 系列 Mac 用 YT6801。目标是 Intel、AMD 黑苹果。
 
 **必须关 SIP 吗？**
-多数黑苹果本来就关着 SIP 或放宽了 AMFI，激活直接过。如果被系统拦下来，关掉 SIP 并在 boot-args 里加 `amfi_get_out_of_my_way=0x1`，一般就能解决。
+多数黑苹果本来就关着 SIP 或放宽了 AMFI，激活直接过。如果被系统拦下来，关掉 SIP 并在 boot-args 里加 `amfi_get_out_of_my_way=0x1`，一般就能解决。还是不行的话，再在 config.plist 的 boot-args 里加 `dk=0x8001` 作为最后手段。
 
 **接口出来了，但一直是 169.254 地址。**
 这是没拿到 DHCP，不是驱动坏了。先查网线和交换机口。如果链路灯是亮的、地址还是不来，收集 `sudo log show --last 5m --predicate 'eventMessage CONTAINS "yt6801:"'` 后提 issue。

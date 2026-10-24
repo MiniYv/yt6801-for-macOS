@@ -89,7 +89,7 @@ No. It is a DriverKit system extension (dext) running in user space. Nothing goe
 No. The dext is built for x86_64 only, and no Apple Silicon Mac ships a YT6801. It targets Intel and AMD hackintoshes.
 
 **Do I have to disable SIP?**
-On most hackintoshes SIP is already off or AMFI is relaxed, and activation just works. If activation is blocked, turning SIP off and adding `amfi_get_out_of_my_way=0x1` to boot-args is the usual fix.
+On most hackintoshes SIP is already off or AMFI is relaxed, and activation just works. If activation is blocked, turning SIP off and adding `amfi_get_out_of_my_way=0x1` to boot-args is the usual fix. If that still fails, adding `dk=0x8001` to boot-args in `config.plist` is the last resort.
 
 **The interface shows up but keeps a 169.254 address.**
 That is a DHCP failure, not a driver failure. Check the cable and the switch port first. If the link light is on and the address still does not arrive, collect `sudo log show --last 5m --predicate 'eventMessage CONTAINS "yt6801:"'` and open an issue.
