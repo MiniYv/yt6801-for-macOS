@@ -1,4 +1,47 @@
-# Changelog — 2026-10-24
+# Changelog
+
+## v1.0.13 — 2026-10-24
+
+### English
+
+**Fixed: the driver failed to attach on machines whose ACPI marks the NIC as built-in (`provider entitlements check failed`)**
+
+On platforms where the motherboard firmware (DSDT) injects the `built-in`  
+property into the onboard Ethernet controller, the kernel requires the driver  
+extension to carry the `com.apple.developer.driverkit.builtin` entitlement  
+before instantiating it. That entitlement string must also precede the  
+`IOPCIPrimaryMatch` dictionary inside the `transport.pci` array — the matcher  
+stops at the first matching descriptor and never reads entries placed after  
+it. The entitlement is now declared before the match dictionary, and the  
+match key uses Apple's documented `IOPCIPrimaryMatch`. On such machines the  
+driver now attaches with no boot-arg workaround at all (previously only  
+`dk=0x8001` could bypass the check).
+
+### 简体中文
+
+**修复：在 ACPI 把网卡标记为内置设备的主板上，驱动无法附加（`provider entitlements check failed`）**
+
+在主板固件（DSDT）给板载以太网控制器注入 `built-in` 属性的机器上，内核要求  
+驱动扩展必须携带 `com.apple.developer.driverkit.builtin` 授权才允许实例化。  
+同时该授权字符串必须放在 `transport.pci` 数组中 `IOPCIPrimaryMatch` 字典  
+**之前**——匹配器命中字典后即停止遍历，放在后面的条目永远不会被读取。现在  
+授权已前置于匹配字典，并把匹配键改为 Apple 文档标准的 `IOPCIPrimaryMatch`。  
+此类机器无需任何 boot-arg 变通（此前只有 `dk=0x8001` 能绕过该检查）即可正常  
+加载。
+
+### 繁體中文
+
+**修復：在 ACPI 將網卡標記為內建裝置的主機板上，驅動無法附加（`provider entitlements check failed`）**
+
+在主機板韌體（DSDT）為板載乙太網路控制器注入 `built-in` 屬性的機器上，核心  
+要求驅動擴充功能必須攜帶 `com.apple.developer.driverkit.builtin` 授權才允許  
+實體化。同時該授權字串必須放在 `transport.pci` 陣列中 `IOPCIPrimaryMatch`  
+字典**之前**——比對器命中字典後即停止走訪，放在後面的項目永遠不會被讀取。  
+現在授權已前置於比對字典，並將比對鍵改為 Apple 文件標準的  
+`IOPCIPrimaryMatch`。此類機器無需任何 boot-arg 變通（先前只有 `dk=0x8001`  
+能繞過該檢查）即可正常載入。
+
+## v1.0.9 — 2026-10-24
 
 ### English
 
@@ -8,15 +51,16 @@ was present at start**
 Before this version, if the driver started without an active link (cable  
 unplugged, or the peer port not yet up), it fell back to PHY loopback plus MAC  
 internal loopback and reported the link "up" at 1000M full duplex. Frames sent  
-in that state never reached the wire, the interface sat on a self-assigned  
-`169.254.x.x` address, and a cable plugged in later was detected only after the  
-probe window expired. Loopback is a diagnostic mode, not a resting state — the  
-driver no longer enters it on its own:
+in that state never reached the wire, and a cable plugged in later was detected  
+only after the probe window expired. Loopback is a diagnostic mode, not a  
+resting state — the driver no longer enters it on its own:
 
 - No link now means an honest link-down report: the interface shows  
-  `status: inactive` with the cable unplugged, no fake carrier, no  
-  `169.254.x.x`.
+  `status: inactive` with the cable unplugged, no fake carrier.
 - A cable plugged in later is picked up by the link poll directly.
+- Leaving the self-test loopback restores auto-negotiation with  
+  `BMCR=0x1340` (restart ANEG, no soft reset), so the PHY is never left pinned  
+  to forced 100M.
 
 **Fixed: the RX ring stopped permanently after roughly 30 received frames**
 
@@ -45,12 +89,13 @@ the system with a "newer SDK required" error, even though the hardware matched.
 
 在此版本之前，如果驱动启动时没有活动链路（网线未插，或对端端口未起来），它会  
 退回 PHY 回环加 MAC 内部回环，并把链路上报为「已连接 1000M 全双工」。这种状态下  
-发出的帧根本不上网线，接口停在自动分配的 `169.254.x.x`，之后才插上的网线也要等  
-探测窗过期才被发现。回环是诊断模式，不是待机状态——驱动不再自行进入回环：
+发出的帧根本不上网线，之后才插上的网线也要等探测窗过期才被发现。回环是诊断模式，  
+不是待机状态——驱动不再自行进入回环：
 
-- 没有链路就如实上报断开：不插线时接口显示 `status: inactive`，没有假载波，  
-  也没有 `169.254.x.x`。
+- 没有链路就如实上报断开：不插线时接口显示 `status: inactive`，没有假载波。
 - 之后插上网线，由链路轮询直接发现，不需要任何等待窗。
+- 退出自检回环时写 `BMCR=0x1340`（重启自协商，不置软复位位），PHY 不会再被  
+  钉死在强制 100M。
 
 **修复：RX 环在收到约 30 帧后永久停摆**
 
@@ -75,12 +120,13 @@ macOS 15.x 上安装会被系统以「需要更新的 SDK」拒绝——尽管�
 
 在此版本之前，如果驅動啟動時沒有活動鏈路（網路線未插，或對端埠未起來），它會  
 退回 PHY 回環加 MAC 內部回環，並把鏈路上報為「已連線 1000M 全雙工」。這種狀態下  
-發出的封包根本不上網路線，介面停在自動指派的 `169.254.x.x`，之後才插上的網路線  
-也要等偵測窗過期才被發現。回環是診斷模式，不是待機狀態——驅動不再自行進入回環：
+發出的封包根本不上網路線，之後才插上的網路線也要等偵測窗過期才被發現。回環是  
+診斷模式，不是待機狀態——驅動不再自行進入回環：
 
-- 沒有鏈路就如實上報斷開：不插線時介面顯示 `status: inactive`，沒有假載波，  
-  也沒有 `169.254.x.x`。
+- 沒有鏈路就如實上報斷開：不插線時介面顯示 `status: inactive`，沒有假載波。
 - 之後插上網路線，由鏈路輪詢直接發現，不需要任何等待窗。
+- 退出自我測試回環時寫 `BMCR=0x1340`（重啟自動協商，不置軟復位位），PHY 不會  
+  再被釘死在強制 100M。
 
 **修復：RX 環在收到約 30 個封包後永久停擺**
 
@@ -116,8 +162,10 @@ while its link was reported "up" in self-loop mode.
 
 **Fix.**
 
-- Exiting loopback now writes `BMCR=0x1340` (bit9 restart auto-negotiation, no  
-  soft reset), so auto-negotiation really restarts.
+- The loopback probe exit path now writes `BMCR=0x1340` (bit9 restart  
+  auto-negotiation, no soft reset), so auto-negotiation really restarts. Two  
+  other restore paths still wrote the soft-reset value in this release; all  
+  exit paths are unified to `0x1340` in v1.0.9.
 - The loopback probe is non-blocking: it opens an 8 s window for  
   auto-negotiation instead of blocking 500 ms inside the poll timer, and only  
   re-enters loopback after that window expires.
@@ -142,7 +190,8 @@ DHCP 报文关在内部回环里，于是接口停在自动分配的 `169.254.x.
 
 **修复内容**
 
-- 退出回环改写 `BMCR=0x1340`（bit9 重启自协商，不置软复位位），自协商真正重启。
+- 回环探测退出路径改写 `BMCR=0x1340`（bit9 重启自协商，不置软复位位），自协商  
+  真正重启。另两个恢复路径在本版本仍写软复位值，已在 v1.0.9 统一为 `0x1340`。
 - 回环探测改为非阻塞：开一个 8 秒的自协商窗口，不再在轮询定时器里阻塞 500ms，  
   窗口过期后才重新进回环。
 
@@ -166,7 +215,9 @@ DHCP 封包關在內部回環裡，於是介面停在自動指派的 `169.254.x.
 
 **修復內容**
 
-- 退出回環改寫 `BMCR=0x1340`（bit9 重啟自動協商，不置軟復位位），自動協商真正重啟。
+- 回環偵測退出路徑改寫 `BMCR=0x1340`（bit9 重啟自動協商，不置軟復位位），自動  
+  協商真正重啟。另兩個恢復路徑在本版本仍寫軟復位值，已在 v1.0.9 統一為  
+  `0x1340`。
 - 回環偵測改為非阻塞：開一個 8 秒的自動協商視窗，不再在輪詢計時器裡阻塞 500ms，  
   視窗過期後才重新進回環。
 
