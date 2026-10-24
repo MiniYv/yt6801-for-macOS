@@ -334,3 +334,40 @@ DHCP、延遲、錯誤計數等一切指標看起來完全正常。這導致下�
 
 > 說明：中間版本 1.0.1–1.0.6 是用於定位該缺陷的內部除錯/測試版本，從未作為  
 > Release 發布。公開版本號因此從 v1.0 直接跳到 v1.0.7。
+
+## v1.0 — 2026-10-22
+
+### English
+
+**Initial public release (experimental)**
+
+This is the first publicly released build of the YT6801 Ethernet driver  
+extension. It is experimental: it has been tested on a single machine only,  
+the actual network experience is not guaranteed, and at this stage it only  
+brings the link up. It serves as an experimental sample, providing a stable  
+starting point for ongoing development.
+
+You may download this build to study bugs or to submit fixes that help  
+development, but it is not recommended for daily use.
+
+### 简体中文
+
+**首个正式公开版本（试验性）**
+
+这是 YT6801 以太网驱动扩展首个正式公开的版本。本版本为试验性质：仅在一台  
+机器上测试过，不保证实际网络体验，当前阶段仅能够建立链路连接。它作为一个  
+实验样本，为后续开发提供稳定的基础支持。
+
+可以下载此版本用于研究 bug、提交对开发有利的修复，但不建议在日常中使用  
+此版本。
+
+### 繁體中文
+
+**首個正式公開版本（試驗性）**
+
+這是 YT6801 乙太網路驅動擴充功能首個正式公開的版本。本版本為試驗性質：僅在  
+一台機器上測試過，不保證實際網路體驗，當前階段僅能夠建立鏈路連接。它作為  
+一個實驗樣本，為後續開發提供穩定的基礎支持。
+
+可以下載此版本用於研究 bug、提交對開發有利的修復，但不建議在日常中使用  
+此版本。
